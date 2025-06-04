@@ -1,3 +1,4 @@
+//frontend/src/pages/
 "use client"
 
 import React, { useEffect, useState, useRef, useCallback } from "react"
