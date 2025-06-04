@@ -1,8 +1,13 @@
 // backend/src/routes/enderecos.ts
-import express from "express"
+import express, { type Request } from "express"
 import { productPool } from "../database"
 import { listarEnderecosPorProduto } from "../controllers/enderecosController"
 import { verificarPermissao } from "../middleware/auth"
+import { auditarEndereco } from "../services/auditoriaEnderecoService"
+
+interface RequestComUsuario extends Request {
+  usuario?: { usuario: string }
+}
 
 const router = express.Router()
 
@@ -78,7 +83,7 @@ router.put("/:id", verificarPermissao("editar"), async (req, res) => {
 })
 
 // POST - Adicionar endereço ao lote do produto
-router.post("/produto/lote", verificarPermissao("incluir"), async (req, res) => {
+router.post("/produto/lote", verificarPermissao("incluir"), async (req: RequestComUsuario, res) => {
   const { codproduto, lote, codendereco, qtde } = req.body
 
   try {
@@ -102,6 +107,15 @@ router.post("/produto/lote", verificarPermissao("incluir"), async (req, res) => 
       )
     }
 
+    await auditarEndereco({
+      codendereco,
+      codproduto,
+      lote,
+      quantidade: qtde,
+      tipo: "entrada",
+      usuario: req.usuario?.usuario,
+    })
+
     res.status(201).json({ mensagem: "Endereço adicionado com sucesso ao lote." })
   } catch (error: any) {
     console.error("Erro ao adicionar endereço ao lote:", error.message || error)
@@ -109,7 +123,7 @@ router.post("/produto/lote", verificarPermissao("incluir"), async (req, res) => 
   }
 })
 
-router.put("/:codproduto/:lote/:codendereco", verificarPermissao("editar"), async (req, res) => {
+router.put("/:codproduto/:lote/:codendereco", verificarPermissao("editar"), async (req: RequestComUsuario, res) => {
   const codproduto = req.params.codproduto?.trim()
   const lote = req.params.lote?.trim()
   const codendereco = req.params.codendereco?.trim()
@@ -120,6 +134,11 @@ router.put("/:codproduto/:lote/:codendereco", verificarPermissao("editar"), asyn
   }
 
   try {
+    const atual = await productPool.query(
+      `SELECT quantidade FROM wms_estoque_local WHERE codproduto = $1 AND lote = $2 AND codendereco = $3`,
+      [codproduto, lote, codendereco],
+    )
+
     await productPool.query(
       `
       UPDATE wms_estoque_local
@@ -129,6 +148,19 @@ router.put("/:codproduto/:lote/:codendereco", verificarPermissao("editar"), asyn
       [qtde, codproduto, lote, codendereco],
     )
 
+    const anterior = Number.parseFloat(atual.rows[0]?.quantidade || "0")
+    const diferenca = qtde - anterior
+    if (diferenca !== 0) {
+      await auditarEndereco({
+        codendereco,
+        codproduto,
+        lote,
+        quantidade: Math.abs(diferenca),
+        tipo: diferenca > 0 ? "entrada" : "saida",
+        usuario: req.usuario?.usuario,
+      })
+    }
+
     res.sendStatus(204)
   } catch (err) {
     console.error("Erro ao editar endereço:", err)
@@ -137,10 +169,15 @@ router.put("/:codproduto/:lote/:codendereco", verificarPermissao("editar"), asyn
 })
 
 // DELETE - remover endereço de um produto
-router.delete("/:codproduto/:lote/:codendereco", verificarPermissao("excluir"), async (req, res) => {
+router.delete("/:codproduto/:lote/:codendereco", verificarPermissao("excluir"), async (req: RequestComUsuario, res) => {
   const { codproduto, lote, codendereco } = req.params
 
   try {
+    const estoque = await productPool.query(
+      `SELECT quantidade FROM wms_estoque_local WHERE codproduto = $1 AND lote = $2 AND codendereco = $3`,
+      [codproduto, lote, codendereco],
+    )
+
     await productPool.query(
       `
       DELETE FROM wms_estoque_local
@@ -148,6 +185,18 @@ router.delete("/:codproduto/:lote/:codendereco", verificarPermissao("excluir"), 
     `,
       [codproduto, lote, codendereco],
     )
+
+    const qtde = Number.parseFloat(estoque.rows[0]?.quantidade || "0")
+    if (qtde > 0) {
+      await auditarEndereco({
+        codendereco,
+        codproduto,
+        lote,
+        quantidade: qtde,
+        tipo: "saida",
+        usuario: req.usuario?.usuario,
+      })
+    }
 
     res.sendStatus(204)
   } catch (err) {
