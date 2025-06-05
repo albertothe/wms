@@ -216,4 +216,17 @@ router.get("/relatorio", (req, res) => __awaiter(void 0, void 0, void 0, functio
         res.status(500).json({ erro: "Erro ao gerar relatório", detalhe: error.message || error });
     }
 }));
+// GET - auditoria de movimentação de endereços
+router.get("/auditoria", (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield database_1.productPool.query(`SELECT codendereco, codproduto, lote, quantidade, tipo, usuario, datahora
+       FROM wms_auditoria_enderecos
+       ORDER BY datahora DESC`);
+        res.json(result.rows);
+    }
+    catch (error) {
+        console.error("Erro ao buscar auditoria:", error);
+        res.status(500).json({ erro: "Erro ao gerar auditoria" });
+    }
+}));
 exports.default = router;

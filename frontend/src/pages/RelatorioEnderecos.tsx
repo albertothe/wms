@@ -89,6 +89,16 @@ interface EstatisticaRua {
   quantidadeTotal: number
 }
 
+interface AuditoriaEndereco {
+  codendereco: string
+  codproduto: string
+  lote: string | null
+  quantidade: number
+  tipo: string
+  usuario: string | null
+  datahora: string
+}
+
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658", "#8dd1e1"]
 
 const RelatorioEnderecos = () => {
@@ -106,6 +116,7 @@ const RelatorioEnderecos = () => {
   const [pagina, setPagina] = useState(0)
   const [linhasPorPagina, setLinhasPorPagina] = useState(20)
   const [abaAtiva, setAbaAtiva] = useState(0)
+  const [auditoria, setAuditoria] = useState<AuditoriaEndereco[]>([])
 
   const buscarConfiguracoes = async () => {
     try {
@@ -128,10 +139,20 @@ const RelatorioEnderecos = () => {
     }
   }
 
+  const buscarAuditoria = async () => {
+    try {
+      const res = await api.get("/enderecos/auditoria")
+      setAuditoria(res.data)
+    } catch (error) {
+      console.error("Erro ao carregar auditoria:", error)
+    }
+  }
+
   useEffect(() => {
     async function carregarTudo() {
       await buscarConfiguracoes()
       await buscarRelatorio()
+      await buscarAuditoria()
     }
     carregarTudo()
   }, [])
@@ -754,6 +775,7 @@ const RelatorioEnderecos = () => {
             <Tab label="Tabela de Dados" />
             <Tab label="Estatísticas" />
             <Tab label="Gráficos" />
+            <Tab label="Auditoria" />
           </Tabs>
 
           {/* Conteúdo da Aba 1: Tabela de Dados */}
@@ -1013,6 +1035,42 @@ const RelatorioEnderecos = () => {
                   </Paper>
                 </Box>
               </Box>
+            </Box>
+          )}
+
+          {/* Conteúdo da Aba 4: Auditoria */}
+          {abaAtiva === 3 && (
+            <Box sx={{ p: 3 }}>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Data/Hora</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Endereço</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Produto</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Lote</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Quantidade</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Tipo</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Usuário</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {auditoria.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell sx={{ p: 1.5 }}>
+                          {new Date(item.datahora).toLocaleString("pt-BR")}
+                        </TableCell>
+                        <TableCell sx={{ p: 1.5 }}>{item.codendereco}</TableCell>
+                        <TableCell sx={{ p: 1.5 }}>{item.codproduto}</TableCell>
+                        <TableCell sx={{ p: 1.5 }}>{item.lote || ""}</TableCell>
+                        <TableCell sx={{ p: 1.5 }}>{item.quantidade}</TableCell>
+                        <TableCell sx={{ p: 1.5 }}>{item.tipo}</TableCell>
+                        <TableCell sx={{ p: 1.5 }}>{item.usuario || ""}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Box>
           )}
         </Paper>
