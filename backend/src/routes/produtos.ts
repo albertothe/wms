@@ -1,5 +1,10 @@
-import express from "express"
+import express, { type Request } from "express"
 import { productPool } from "../database"
+import { auditarEndereco } from "../services/auditoriaEnderecoService"
+
+interface RequestComUsuario extends Request {
+  usuario?: { usuario: string }
+}
 
 const router = express.Router()
 
@@ -107,7 +112,7 @@ router.get("/:codproduto/enderecos-lote/:lote", async (req, res) => {
 })
 
 // POST - Adicionar endereço ao lote do produto
-router.post("/:codproduto/:lote", async (req, res) => {
+router.post("/:codproduto/:lote", async (req: RequestComUsuario, res) => {
   const { codproduto, lote } = req.params
   const { codendereco, qtde } = req.body
 
@@ -117,6 +122,14 @@ router.post("/:codproduto/:lote", async (req, res) => {
        VALUES ($1, $2, $3, $4)`,
       [codproduto, lote, codendereco, qtde],
     )
+    await auditarEndereco({
+      codendereco,
+      codproduto,
+      lote,
+      quantidade: qtde,
+      tipo: "entrada",
+      usuario: req.usuario?.usuario,
+    })
     res.status(201).send("Endereço adicionado ao lote com sucesso")
   } catch (error) {
     console.error(`Erro ao adicionar endereço ${codendereco} ao produto ${codproduto}, lote ${lote}:`, error)
@@ -125,17 +138,35 @@ router.post("/:codproduto/:lote", async (req, res) => {
 })
 
 // PUT - editar endereço por lote
-router.put("/:codproduto/:lote/:codendereco", async (req, res) => {
+router.put("/:codproduto/:lote/:codendereco", async (req: RequestComUsuario, res) => {
   const { codproduto, lote, codendereco } = req.params
   const { qtde } = req.body
 
   try {
+    const atual = await productPool.query(
+      `SELECT quantidade FROM wms_estoque_local WHERE codproduto = $1 AND lote = $2 AND codendereco = $3`,
+      [codproduto, lote, codendereco],
+    )
+
     await productPool.query(
-      `UPDATE wms_estoque_local 
-       SET quantidade = $1 
+      `UPDATE wms_estoque_local
+       SET quantidade = $1
        WHERE codproduto = $2 AND lote = $3 AND codendereco = $4`,
       [qtde, codproduto, lote, codendereco],
     )
+
+    const anterior = Number.parseFloat(atual.rows[0]?.quantidade || "0")
+    const diferenca = qtde - anterior
+    if (diferenca !== 0) {
+      await auditarEndereco({
+        codendereco,
+        codproduto,
+        lote,
+        quantidade: Math.abs(diferenca),
+        tipo: diferenca > 0 ? "entrada" : "saida",
+        usuario: req.usuario?.usuario,
+      })
+    }
     res.status(200).send("Quantidade atualizada com sucesso")
   } catch (err) {
     console.error(`Erro ao editar endereço ${codendereco} do produto ${codproduto}, lote ${lote}:`, err)
@@ -144,15 +175,32 @@ router.put("/:codproduto/:lote/:codendereco", async (req, res) => {
 })
 
 // DELETE - excluir endereço de um lote
-router.delete("/:codproduto/:lote/:codendereco", async (req, res) => {
+router.delete("/:codproduto/:lote/:codendereco", async (req: RequestComUsuario, res) => {
   const { codproduto, lote, codendereco } = req.params
 
   try {
+    const estoque = await productPool.query(
+      `SELECT quantidade FROM wms_estoque_local WHERE codproduto = $1 AND lote = $2 AND codendereco = $3`,
+      [codproduto, lote, codendereco],
+    )
+
     await productPool.query(
-      `DELETE FROM wms_estoque_local 
+      `DELETE FROM wms_estoque_local
        WHERE codproduto = $1 AND lote = $2 AND codendereco = $3`,
       [codproduto, lote, codendereco],
     )
+
+    const qtde = Number.parseFloat(estoque.rows[0]?.quantidade || "0")
+    if (qtde > 0) {
+      await auditarEndereco({
+        codendereco,
+        codproduto,
+        lote,
+        quantidade: qtde,
+        tipo: "saida",
+        usuario: req.usuario?.usuario,
+      })
+    }
     res.status(204).send()
   } catch (err) {
     console.error(`Erro ao excluir endereço ${codendereco} do produto ${codproduto}, lote ${lote}:`, err)
