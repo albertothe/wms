@@ -250,4 +250,19 @@ router.get("/relatorio", async (req, res) => {
   }
 })
 
+// GET - auditoria de movimentação de endereços
+router.get("/auditoria", async (_req, res) => {
+  try {
+    const result = await productPool.query(
+      `SELECT codendereco, codproduto, lote, quantidade, tipo, usuario, datahora
+       FROM wms_auditoria_enderecos
+       ORDER BY datahora DESC`
+    )
+    res.json(result.rows)
+  } catch (error) {
+    console.error("Erro ao buscar auditoria:", error)
+    res.status(500).json({ erro: "Erro ao gerar auditoria" })
+  }
+})
+
 export default router
