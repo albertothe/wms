@@ -117,6 +117,11 @@ const RelatorioEnderecos = () => {
   const [linhasPorPagina, setLinhasPorPagina] = useState(20)
   const [abaAtiva, setAbaAtiva] = useState(0)
   const [auditoria, setAuditoria] = useState<AuditoriaEndereco[]>([])
+  const [filtroUsuarioAuditoria, setFiltroUsuarioAuditoria] = useState("")
+  const [filtroDataInicio, setFiltroDataInicio] = useState("")
+  const [filtroDataFim, setFiltroDataFim] = useState("")
+  const [paginaAuditoria, setPaginaAuditoria] = useState(0)
+  const [linhasPorPaginaAuditoria, setLinhasPorPaginaAuditoria] = useState(20)
 
   const buscarConfiguracoes = async () => {
     try {
@@ -191,6 +196,38 @@ const RelatorioEnderecos = () => {
       (!filtroLote || item.lote === filtroLote) &&
       (item.produto.toLowerCase().includes(filtroProduto.toLowerCase()) || item.codproduto.includes(filtroProduto)),
   )
+
+  const auditoriaFiltrada = auditoria.filter((item) => {
+    const codigo = item.codendereco.toUpperCase()
+    const passaEndereco =
+      (!filtroRua || codigo.startsWith(`R${filtroRua.toUpperCase()}`)) &&
+      (!filtroPredio || codigo.includes(`P${filtroPredio.toUpperCase()}`)) &&
+      (!filtroAndar || codigo.includes(`A${filtroAndar.toUpperCase()}`)) &&
+      (!filtroApto || codigo.endsWith(`A${filtroApto.toUpperCase()}`))
+
+    const passaLote = !filtroLote || item.lote === filtroLote
+    const passaProduto =
+      !filtroProduto || item.codproduto.includes(filtroProduto)
+    const passaUsuario =
+      !filtroUsuarioAuditoria ||
+      (item.usuario || "")
+        .toLowerCase()
+        .includes(filtroUsuarioAuditoria.toLowerCase())
+    const data = new Date(item.datahora)
+    const passaDataInicio =
+      !filtroDataInicio || data >= new Date(`${filtroDataInicio}T00:00:00`)
+    const passaDataFim =
+      !filtroDataFim || data <= new Date(`${filtroDataFim}T23:59:59`)
+
+    return (
+      passaEndereco &&
+      passaLote &&
+      passaProduto &&
+      passaUsuario &&
+      passaDataInicio &&
+      passaDataFim
+    )
+  })
 
   // Estatísticas calculadas
   const estatisticasEnderecos = useMemo(() => {
@@ -341,7 +378,11 @@ const RelatorioEnderecos = () => {
     setFiltroApto("")
     setFiltroProduto("")
     setFiltroLote("")
+    setFiltroUsuarioAuditoria("")
+    setFiltroDataInicio("")
+    setFiltroDataFim("")
     setPagina(0)
+    setPaginaAuditoria(0)
   }
 
   const handleFiltroRuaChange = (event: SelectChangeEvent) => {
@@ -547,6 +588,39 @@ const RelatorioEnderecos = () => {
                 }}
               />
 
+              {abaAtiva === 3 && (
+                <>
+                  <TextField
+                    label="Usuário"
+                    variant="outlined"
+                    size="small"
+                    sx={{ minWidth: 150 }}
+                    value={filtroUsuarioAuditoria}
+                    onChange={(e) => setFiltroUsuarioAuditoria(e.target.value)}
+                  />
+                  <TextField
+                    label="Data início"
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    sx={{ minWidth: 150 }}
+                    InputLabelProps={{ shrink: true }}
+                    value={filtroDataInicio}
+                    onChange={(e) => setFiltroDataInicio(e.target.value)}
+                  />
+                  <TextField
+                    label="Data fim"
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    sx={{ minWidth: 150 }}
+                    InputLabelProps={{ shrink: true }}
+                    value={filtroDataFim}
+                    onChange={(e) => setFiltroDataFim(e.target.value)}
+                  />
+                </>
+              )}
+
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Button
                   variant="outlined"
@@ -590,7 +664,8 @@ const RelatorioEnderecos = () => {
             </Box>
           </Stack>
 
-          {(filtroRua || filtroPredio || filtroAndar || filtroApto || filtroLote || filtroProduto) && (
+          {(filtroRua || filtroPredio || filtroAndar || filtroApto || filtroLote || filtroProduto ||
+            (abaAtiva === 3 && (filtroUsuarioAuditoria || filtroDataInicio || filtroDataFim))) && (
             <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
               {filtroRua && (
                 <Chip
@@ -636,6 +711,30 @@ const RelatorioEnderecos = () => {
                 <Chip
                   label={`Produto: ${filtroProduto}`}
                   onDelete={() => setFiltroProduto("")}
+                  size="small"
+                  sx={{ bgcolor: alpha(corTopo, 0.1) }}
+                />
+              )}
+              {abaAtiva === 3 && filtroUsuarioAuditoria && (
+                <Chip
+                  label={`Usuário: ${filtroUsuarioAuditoria}`}
+                  onDelete={() => setFiltroUsuarioAuditoria("")}
+                  size="small"
+                  sx={{ bgcolor: alpha(corTopo, 0.1) }}
+                />
+              )}
+              {abaAtiva === 3 && filtroDataInicio && (
+                <Chip
+                  label={`Início: ${filtroDataInicio}`}
+                  onDelete={() => setFiltroDataInicio("")}
+                  size="small"
+                  sx={{ bgcolor: alpha(corTopo, 0.1) }}
+                />
+              )}
+              {abaAtiva === 3 && filtroDataFim && (
+                <Chip
+                  label={`Fim: ${filtroDataFim}`}
+                  onDelete={() => setFiltroDataFim("")}
                   size="small"
                   sx={{ bgcolor: alpha(corTopo, 0.1) }}
                 />
@@ -1055,22 +1154,64 @@ const RelatorioEnderecos = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {auditoria.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell sx={{ p: 1.5 }}>
-                          {new Date(item.datahora).toLocaleString("pt-BR")}
-                        </TableCell>
-                        <TableCell sx={{ p: 1.5 }}>{item.codendereco}</TableCell>
-                        <TableCell sx={{ p: 1.5 }}>{item.codproduto}</TableCell>
-                        <TableCell sx={{ p: 1.5 }}>{item.lote || ""}</TableCell>
-                        <TableCell sx={{ p: 1.5 }}>{item.quantidade}</TableCell>
-                        <TableCell sx={{ p: 1.5 }}>{item.tipo}</TableCell>
-                        <TableCell sx={{ p: 1.5 }}>{item.usuario || ""}</TableCell>
-                      </TableRow>
-                    ))}
+                    {auditoriaFiltrada
+                      .slice(
+                        paginaAuditoria * linhasPorPaginaAuditoria,
+                        paginaAuditoria * linhasPorPaginaAuditoria + linhasPorPaginaAuditoria,
+                      )
+                      .map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell sx={{ p: 1.5 }}>
+                            {new Date(item.datahora).toLocaleString("pt-BR")}
+                          </TableCell>
+                          <TableCell sx={{ p: 1.5 }}>{item.codendereco}</TableCell>
+                          <TableCell sx={{ p: 1.5 }}>{item.codproduto}</TableCell>
+                          <TableCell sx={{ p: 1.5 }}>{item.lote || ""}</TableCell>
+                          <TableCell sx={{ p: 1.5 }}>{item.quantidade}</TableCell>
+                          <TableCell sx={{ p: 1.5 }}>{item.tipo}</TableCell>
+                          <TableCell sx={{ p: 1.5 }}>{item.usuario || ""}</TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </TableContainer>
+              <Paper
+                elevation={0}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  p: 1,
+                  mt: 2,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <TablePagination
+                  component="div"
+                  count={auditoriaFiltrada.length}
+                  page={paginaAuditoria}
+                  onPageChange={(_, novaPagina) => setPaginaAuditoria(novaPagina)}
+                  rowsPerPage={linhasPorPaginaAuditoria}
+                  onRowsPerPageChange={(e) => {
+                    setLinhasPorPaginaAuditoria(Number.parseInt(e.target.value, 10))
+                    setPaginaAuditoria(0)
+                  }}
+                  rowsPerPageOptions={[10, 20, 50, 75]}
+                  labelRowsPerPage="Linhas por página:"
+                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                  sx={{
+                    ".MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows": {
+                      margin: 0,
+                    },
+                    ".MuiTablePagination-select": {
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                    },
+                  }}
+                />
+              </Paper>
             </Box>
           )}
         </Paper>

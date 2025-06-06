@@ -173,7 +173,7 @@ const PainelSaida: React.FC = () => {
     codproduto: string
     lote: string
     codendereco: string
-    qtdeDisponivel: number
+    qtdeVenda: number
     chave: string
   } | null>(null)
   const [corTopo, setCorTopo] = useState("#0a0a6b")
@@ -1386,17 +1386,14 @@ const PainelSaida: React.FC = () => {
                                                                                               boxShadow: "none",
                                                                                             }}
                                                                                             onClick={() =>
-                                                                                              setModal({
-                                                                                                aberto: true,
-                                                                                                codproduto:
-                                                                                                  prod.codproduto,
-                                                                                                lote: lote.lote,
-                                                                                                codendereco:
-                                                                                                  end.codendereco,
-                                                                                                qtdeDisponivel:
-                                                                                                  end.qtde,
-                                                                                                chave: pn.chave,
-                                                                                              })
+              setModal({
+                aberto: true,
+                codproduto: prod.codproduto,
+                lote: lote.lote,
+                codendereco: end.codendereco,
+                qtdeVenda: prod.qtde_saida,
+                chave: pn.chave,
+              })
                                                                                             }
                                                                                           >
                                                                                             Confirmar
@@ -1554,7 +1551,7 @@ const PainelSaida: React.FC = () => {
                                                                             codproduto: prod.codproduto,
                                                                             lote: "-", // produto sem controle de lote
                                                                             codendereco: end.codendereco,
-                                                                            qtdeDisponivel: end.qtde,
+                                                                            qtdeVenda: prod.qtde_saida,
                                                                             chave: pn.chave,
                                                                           })
                                                                         }
@@ -1618,7 +1615,7 @@ const PainelSaida: React.FC = () => {
                 Tem certeza que deseja marcar o endereço <b>{modal.codendereco}</b> para o produto{" "}
                 <b>{modal.codproduto}</b> (Lote: {modal.lote})?
                 <br />
-                Quantidade disponível: <b>{formatarNumero(modal.qtdeDisponivel)}</b>
+                Quantidade da venda: <b>{formatarNumero(modal.qtdeVenda)}</b>
               </Typography>
             )}
           </DialogContent>
@@ -1634,7 +1631,7 @@ const PainelSaida: React.FC = () => {
                     modal.codproduto,
                     modal.lote,
                     modal.codendereco,
-                    modal.qtdeDisponivel,
+                    modal.qtdeVenda,
                   )
                   setModal(null)
                 }

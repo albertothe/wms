@@ -1681,11 +1681,11 @@ const Produtos = () => {
                         <TableCell align="right" sx={{ p: 1.5 }}>
                           {formatarNumero(prod.qtde_estoque)}
                         </TableCell>
+
                       </TableRow>
                     ))}
                     {produtosSemEndereco.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={3} align="center" sx={{ py: 3 }}>
                           <Typography variant="body1" color="text.secondary">
                             Nenhum produto com estoque sem localização.
                           </Typography>
