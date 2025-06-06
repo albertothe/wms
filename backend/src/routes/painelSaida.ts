@@ -1,7 +1,12 @@
 // backend/src/routes/painelSaida.ts
-import express from "express"
+import express, { type Request } from "express"
 import { productPool } from "../database"
 import { logger } from "../utils/logger"
+import { auditarEndereco } from "../services/auditoriaEnderecoService"
+
+interface RequestComUsuario extends Request {
+  usuario?: { usuario: string }
+}
 
 const router = express.Router()
 
@@ -404,7 +409,7 @@ router.get("/etiquetas/:chave", async (req, res) => {
 })
 
 // MARCAR ENDEREÇO
-router.post("/marcar-endereco", async (req, res) => {
+router.post("/marcar-endereco", async (req: RequestComUsuario, res) => {
   const { codproduto, lote, codendereco, qtde, chave } = req.body
 
   try {
@@ -469,6 +474,15 @@ router.post("/marcar-endereco", async (req, res) => {
       )
     }
 
+    await auditarEndereco({
+      codendereco,
+      codproduto,
+      lote,
+      quantidade: qtde,
+      tipo: "saida",
+      usuario: req.usuario?.usuario,
+    })
+
     res.sendStatus(200)
   } catch (err) {
     logger.error("Erro ao marcar endereço:", err)
@@ -477,7 +491,7 @@ router.post("/marcar-endereco", async (req, res) => {
 })
 
 // DESMARCAR ENDEREÇO
-router.post("/desmarcar-endereco", async (req, res) => {
+router.post("/desmarcar-endereco", async (req: RequestComUsuario, res) => {
   const { codproduto, lote, codendereco, chave } = req.body
 
   try {
@@ -517,6 +531,15 @@ router.post("/desmarcar-endereco", async (req, res) => {
       `DELETE FROM wms_endereco_marcado WHERE codproduto = $1 AND lote = $2 AND codendereco = $3 AND chave = $4`,
       [codproduto, lote, codendereco, chave],
     )
+
+    await auditarEndereco({
+      codendereco,
+      codproduto,
+      lote,
+      quantidade: quantidadeMarcada,
+      tipo: "entrada",
+      usuario: req.usuario?.usuario,
+    })
 
     res.sendStatus(200)
   } catch (err) {
