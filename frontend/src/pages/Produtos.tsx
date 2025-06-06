@@ -1650,6 +1650,53 @@ const Produtos = () => {
               </TableContainer>
             </Box>
           )}
+
+          {/* Conteúdo da Aba 4: Produtos Sem Endereço */}
+          {abaAtiva === 3 && (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: corTopo }}>
+                Produtos com Estoque Sem Localização
+              </Typography>
+              <TableContainer component={Paper} sx={{ boxShadow: "none", border: "1px solid", borderColor: "divider" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Código</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Produto</TableCell>
+                      <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Estoque</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {produtosSemEndereco.map((prod) => (
+                      <TableRow
+                        key={prod.codproduto}
+                        hover
+                        sx={{
+                          "&:nth-of-type(even)": { backgroundColor: alpha("#f3f4f6", 0.3) },
+                          backgroundColor: alpha("#ff9800", 0.1),
+                        }}
+                      >
+                        <TableCell sx={{ p: 1.5 }}>{prod.codproduto}</TableCell>
+                        <TableCell sx={{ p: 1.5, fontWeight: 500 }}>{prod.produto}</TableCell>
+                        <TableCell align="right" sx={{ p: 1.5 }}>
+                          {formatarNumero(prod.qtde_estoque)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {produtosSemEndereco.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={3} align="center" sx={{ py: 3 }}>
+                          <Typography variant="body1" color="text.secondary">
+                            Nenhum produto com estoque sem localização.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
         </Paper>
 
         {/* Modal Adicionar Endereço */}
