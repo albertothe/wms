@@ -1664,9 +1664,6 @@ const Produtos = () => {
                       <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Código</TableCell>
                       <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Produto</TableCell>
                       <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Estoque</TableCell>
-                      <TableCell align="center" sx={{ p: 1.5, fontWeight: 600 }}>
-                        Ações
-                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1684,26 +1681,11 @@ const Produtos = () => {
                         <TableCell align="right" sx={{ p: 1.5 }}>
                           {formatarNumero(prod.qtde_estoque)}
                         </TableCell>
-                        <TableCell align="center" sx={{ p: 1.5 }}>
-                          <Tooltip title="Adicionar Endereço">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => abrirModalAdicionar(prod.codproduto, "-")}
-                              sx={{
-                                color: corTopo,
-                                "&:hover": { backgroundColor: alpha(corTopo, 0.1) },
-                              }}
-                            >
-                              <Add fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
+
                       </TableRow>
                     ))}
                     {produtosSemEndereco.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
                           <Typography variant="body1" color="text.secondary">
                             Nenhum produto com estoque sem localização.
                           </Typography>
