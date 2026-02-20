@@ -153,29 +153,33 @@ const ImprimirPreNota: React.FC<ImprimirPreNotaProps> = ({ chave }) => {
         ${estilosAtuais}
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; padding: 15px; background: white; color: #000; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-          th, td { border: 1px solid #ccc; padding: 4px 6px; font-size: 11px; text-align: left; }
+          body { font-family: Arial, sans-serif; padding: 8px; background: white; color: #000; line-height: 1.2; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+          th, td { border: 1px solid #ccc; padding: 2px 4px; font-size: 10px; text-align: left; }
           th { background-color: #f5f5f5; font-weight: bold; }
-          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-          .header h1 { font-size: 16px; font-weight: bold; }
-          .header span { font-size: 11px; }
-          .info-line { font-size: 11px; border-bottom: 1px solid #ccc; padding-bottom: 6px; margin-bottom: 8px; }
-          .section-title { font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 6px; }
+          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+          .header h1 { font-size: 14px; font-weight: bold; }
+          .header span { font-size: 10px; }
+          .info-line { font-size: 10px; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 6px; }
+          .section-title { font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 4px; }
           .total-row td { font-weight: bold; }
           .text-right { text-align: right; }
-          .assinaturas { display: flex; justify-content: space-around; margin-top: 40px; }
+          .assinaturas { display: flex; justify-content: space-around; margin-top: 28px; }
           .assinatura { text-align: center; }
-          .assinatura-linha { border-top: 1px solid #000; width: 200px; margin-bottom: 4px; }
-          .assinatura-label { font-size: 11px; }
-          .rodape { margin-top: 20px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 9px; color: #666; }
+          .assinatura-linha { border-top: 1px solid #000; width: 180px; margin-bottom: 3px; }
+          .assinatura-label { font-size: 10px; }
+          .rodape { margin-top: 14px; padding-top: 6px; border-top: 1px solid #ccc; text-align: center; font-size: 8px; color: #666; }
           .marcado { background-color: #e3f2fd; }
-          .obs-box { margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-          .obs-title { font-weight: bold; font-size: 11px; margin-bottom: 4px; }
-          .obs-text { font-size: 11px; }
+          .obs-box { margin-bottom: 8px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
+          .obs-title { font-weight: bold; font-size: 10px; margin-bottom: 3px; }
+          .obs-text { font-size: 10px; }
+          .impressao-prenota { transform: scale(0.96); transform-origin: top center; width: 104%; margin-left: -2%; }
+          .impressao-prenota .MuiTableCell-root { padding-top: 2px !important; padding-bottom: 2px !important; line-height: 1.15; }
+          .impressao-prenota .MuiTypography-root { margin-bottom: 0; }
           @media print {
             body { padding: 0; }
-            @page { margin: 10mm; }
+            @page { margin: 6mm; }
+            .impressao-prenota { transform: none; width: 100%; margin-left: 0; }
           }
         </style>
       </head>
