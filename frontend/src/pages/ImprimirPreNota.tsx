@@ -141,11 +141,16 @@ const ImprimirPreNota: React.FC<ImprimirPreNotaProps> = ({ chave }) => {
       return
     }
 
+    const estilosAtuais = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((node) => node.outerHTML)
+      .join("\n")
+
     janelaImpressao.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
         <title>Pre-Nota ${notaData?.capa?.numero || ""}</title>
+        ${estilosAtuais}
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: Arial, sans-serif; padding: 15px; background: white; color: #000; }
@@ -175,13 +180,13 @@ const ImprimirPreNota: React.FC<ImprimirPreNotaProps> = ({ chave }) => {
         </style>
       </head>
       <body>
-        ${conteudo.innerHTML}
+        ${conteudo.outerHTML}
         <script>
           window.onload = function() {
             window.print();
             window.onafterprint = function() { window.close(); };
           };
-        <\/script>
+        </script>
       </body>
       </html>
     `)
