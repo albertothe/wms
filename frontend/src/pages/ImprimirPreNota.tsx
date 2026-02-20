@@ -5,6 +5,8 @@
 import type React from "react"
 import { useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import html2canvas from "html2canvas"
+import { jsPDF } from "jspdf"
 import {
   Button,
   Container,
@@ -198,21 +200,88 @@ const ImprimirPreNota: React.FC<ImprimirPreNotaProps> = ({ chave }) => {
   }
 
   const handleDownloadPDF = () => {
-    // Implementação para download de PDF
-    setSnackbar({
-      open: true,
-      message: "Funcionalidade de download de PDF será implementada em breve",
-      severity: "info",
-    })
+    void generateAndHandlePDF("download")
   }
 
   const handleOpenPDF = () => {
-    // Implementação para abrir PDF em nova janela
-    setSnackbar({
-      open: true,
-      message: "Funcionalidade de abrir PDF será implementada em breve",
-      severity: "info",
-    })
+    void generateAndHandlePDF("open")
+  }
+
+  const generateAndHandlePDF = async (mode: "download" | "open") => {
+    const conteudo = document.querySelector(".impressao-prenota") as HTMLElement | null
+
+    if (!conteudo || !notaData) {
+      setSnackbar({
+        open: true,
+        message: "Conteúdo da pré-nota não encontrado para gerar PDF",
+        severity: "error",
+      })
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const canvas = await html2canvas(conteudo, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      })
+
+      const imageData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 6
+      const usableWidth = pageWidth - margin * 2
+      const imgHeight = (canvas.height * usableWidth) / canvas.width
+
+      pdf.addImage(imageData, "PNG", margin, margin, usableWidth, imgHeight)
+
+      let remainingHeight = imgHeight - (pageHeight - margin * 2)
+      while (remainingHeight > 0) {
+        pdf.addPage()
+        const position = margin - (imgHeight - remainingHeight)
+        pdf.addImage(imageData, "PNG", margin, position, usableWidth, imgHeight)
+        remainingHeight -= pageHeight - margin * 2
+      }
+
+      const nomeArquivo = `prenota-${notaData?.capa?.numero || "documento"}.pdf`
+
+      if (mode === "download") {
+        pdf.save(nomeArquivo)
+      } else {
+        const blobUrl = URL.createObjectURL(pdf.output("blob"))
+        const novaJanela = window.open(blobUrl, "_blank")
+
+        if (!novaJanela) {
+          URL.revokeObjectURL(blobUrl)
+          setSnackbar({
+            open: true,
+            message: "Navegador bloqueou a abertura do PDF. Permita pop-ups.",
+            severity: "error",
+          })
+          return
+        }
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000)
+      }
+
+      setSnackbar({
+        open: true,
+        message: mode === "download" ? "PDF baixado com sucesso" : "PDF aberto em nova guia",
+        severity: "success",
+      })
+    } catch (pdfError) {
+      console.error("Erro ao gerar PDF da pré-nota:", pdfError)
+      setSnackbar({
+        open: true,
+        message: "Não foi possível gerar o PDF da pré-nota",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCloseSnackbar = () => {
