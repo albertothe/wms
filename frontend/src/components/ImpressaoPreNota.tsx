@@ -140,9 +140,9 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
     const dataAtual = new Date().toLocaleString("pt-BR")
 
     return (
-        <Box sx={{ p: 4, maxWidth: "210mm", margin: "0 auto", bgcolor: "white" }} className="impressao-prenota">
+        <Box sx={{ p: 2.5, maxWidth: "210mm", margin: "0 auto", bgcolor: "white", fontSize: "0.84rem" }} className="impressao-prenota">
             {/* Cabeçalho */}
-            <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box sx={{ mb: 1.2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography variant="h6" component="h1" sx={{ fontWeight: "bold" }}>
                     IMPRESSÃO DE PRÉ-NOTA
                 </Typography>
@@ -150,16 +150,16 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             </Box>
 
             {/* Informações da Nota */}
-            <Box sx={{ mb: 2, borderBottom: "1px solid #ccc", pb: 1 }}>
-                <Typography variant="body2">
+            <Box sx={{ mb: 1.2, borderBottom: "1px solid #ccc", pb: 0.6 }}>
+                <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
                     Loja: {notaData.capa.loja || "00"} | Pré-Nota: {notaData.capa.numero} | NP: {notaData.capa.np || chave || "-"}{" "}
                     | Data: {formatarData(notaData.capa.dataEmissao)}
                 </Typography>
             </Box>
 
             {/* Destinatário */}
-            <Box sx={{ mb: 2, borderBottom: "1px solid #ccc", pb: 1 }}>
-                <Typography variant="body2" sx={{ display: "flex" }}>
+            <Box sx={{ mb: 1.2, borderBottom: "1px solid #ccc", pb: 0.6 }}>
+                <Typography variant="body2" sx={{ display: "flex", fontSize: "0.75rem" }}>
                     <Box component="span" sx={{ minWidth: "100px", fontWeight: "bold" }}>
                         Destinatário:
                     </Box>
@@ -168,23 +168,23 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             </Box>
 
             {/* Tabela de Produtos */}
-            <Typography variant="body1" sx={{ mb: 1, fontWeight: "bold", textAlign: "center" }}>
+            <Typography variant="body1" sx={{ mb: 0.5, fontWeight: "bold", textAlign: "center", fontSize: "0.85rem" }}>
                 Produtos
             </Typography>
-            <TableContainer component={Paper} sx={{ mb: 3, boxShadow: "none", border: "1px solid #ddd" }}>
+            <TableContainer component={Paper} sx={{ mb: 1.5, boxShadow: "none", border: "1px solid #ddd" }}>
                 <Table size="small">
                     <TableHead>
                         <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                            <TableCell sx={{ fontWeight: "bold" }}>Cód.</TableCell>
-                            <TableCell sx={{ fontWeight: "bold" }}>Descrição</TableCell>
-                            {modeloImpressao === 1 && <TableCell sx={{ fontWeight: "bold" }}>CodEndereço</TableCell>}
-                            <TableCell sx={{ fontWeight: "bold" }} align="right">
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }}>Cód.</TableCell>
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }}>Descrição</TableCell>
+                            {modeloImpressao === 1 && <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }}>CodEndereço</TableCell>}
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }} align="right">
                                 Qtde
                             </TableCell>
-                            <TableCell sx={{ fontWeight: "bold" }} align="right">
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }} align="right">
                                 Prç unit.
                             </TableCell>
-                            <TableCell sx={{ fontWeight: "bold" }} align="right">
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }} align="right">
                                 Prç Total
                             </TableCell>
                         </TableRow>
@@ -202,26 +202,26 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
 
                             return (
                                 <TableRow key={index}>
-                                    <TableCell>{produto.codigo}</TableCell>
-                                    <TableCell>{produto.descricao}</TableCell>
-                                    {modeloImpressao === 1 && <TableCell>{enderecosMarcados || "-"}</TableCell>}
-                                    <TableCell align="right">{produto.quantidade.toFixed(2)}</TableCell>
-                                    <TableCell align="right">{formatarValor(produto.valorUnitario)}</TableCell>
-                                    <TableCell align="right">
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }}>{produto.codigo}</TableCell>
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }}>{produto.descricao}</TableCell>
+                                    {modeloImpressao === 1 && <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }}>{enderecosMarcados || "-"}</TableCell>}
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }} align="right">{produto.quantidade.toFixed(2)}</TableCell>
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }} align="right">{formatarValor(produto.valorUnitario)}</TableCell>
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }} align="right">
                                         {formatarValor(produto.valorTotal || produto.quantidade * produto.valorUnitario)}
                                     </TableCell>
                                 </TableRow>
                             )
                         })}
                         <TableRow>
-                            <TableCell colSpan={modeloImpressao === 1 ? 3 : 2} sx={{ fontWeight: "bold" }}>
+                            <TableCell colSpan={modeloImpressao === 1 ? 3 : 2} sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem" }}>
                                 TOTAL
                             </TableCell>
-                            <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                            <TableCell align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem" }}>
                                 {totais.quantidade.toFixed(2)}
                             </TableCell>
-                            <TableCell></TableCell>
-                            <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                            <TableCell sx={{ py: 0.45, px: 0.6 }}></TableCell>
+                            <TableCell align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem" }}>
                                 {formatarValor(totais.valor)}
                             </TableCell>
                         </TableRow>
