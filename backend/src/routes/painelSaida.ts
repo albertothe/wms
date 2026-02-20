@@ -99,7 +99,8 @@ router.get("/:chave/imprimir", async (req, res) => {
         separacao,
         coddestinario,
         destinario,
-        chave
+        chave,
+        observacao
       FROM vs_wms_fpainel_saida
       WHERE TRIM(chave) = $1
       LIMIT 1
@@ -199,11 +200,12 @@ router.get("/:chave/imprimir", async (req, res) => {
         emitente: capa.destinario,
         dataEmissao: capa.data,
         dataEntrada: capa.data, // Usar a mesma data como exemplo
-        observacoes: `Pré-nota: ${capa.prenota}, Nota: ${capa.np}, Tipo: ${capa.tipo}, Status: ${capa.status}`,
+        //observacoes: `Pré-nota: ${capa.prenota}, Nota: ${capa.np}, Tipo: ${capa.tipo}, Status: ${capa.status}`,
+        observacoes: capa.observacao,
         loja: capa.codloja,
         op: capa.op,
         separacao: capa.separacao,
-        np: capa.np,
+        np: capa.np
       },
       produtos: produtos.rows.map((prod) => ({
         codigo: prod.codproduto,

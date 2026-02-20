@@ -144,7 +144,7 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             {/* Cabeçalho */}
             <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography variant="h6" component="h1" sx={{ fontWeight: "bold" }}>
-                    RELATÓRIO DE PRÉ-NOTA {modeloImpressao === 2 ? "(SIMPLIFICADO)" : ""}
+                    IMPRESSÃO DE PRÉ-NOTA
                 </Typography>
                 <Typography variant="body2">Gerado em: {dataAtual}</Typography>
             </Box>
@@ -312,13 +312,6 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
                 </Box>
             </Box>
 
-            {/* Rodapé com informações do modelo */}
-            <Box sx={{ mt: 4, pt: 2, borderTop: "1px solid #ccc", textAlign: "center" }}>
-                <Typography variant="caption" color="text.secondary">
-                    Modelo de Impressão: {modeloImpressao === 1 ? "Completo" : "Simplificado"} | Sistema WMS -{" "}
-                    {config.empresa?.nome || "Empresa"}
-                </Typography>
-            </Box>
         </Box>
     )
 }

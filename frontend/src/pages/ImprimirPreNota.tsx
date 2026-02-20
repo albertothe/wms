@@ -126,9 +126,66 @@ const ImprimirPreNota: React.FC<ImprimirPreNotaProps> = ({ chave }) => {
     setOpen(false)
   }
 
-  // Função para impressão direta sem biblioteca externa
+  // Funcao para impressao em nova janela - mostra apenas a pre-nota
   const handlePrint = () => {
-    window.print()
+    const conteudo = document.querySelector(".impressao-prenota")
+    if (!conteudo) return
+
+    const janelaImpressao = window.open("", "_blank", "width=800,height=600")
+    if (!janelaImpressao) {
+      setSnackbar({
+        open: true,
+        message: "Navegador bloqueou a janela de impressao. Permita pop-ups.",
+        severity: "error",
+      })
+      return
+    }
+
+    janelaImpressao.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Pre-Nota ${notaData?.capa?.numero || ""}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; padding: 15px; background: white; color: #000; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          th, td { border: 1px solid #ccc; padding: 4px 6px; font-size: 11px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+          .header h1 { font-size: 16px; font-weight: bold; }
+          .header span { font-size: 11px; }
+          .info-line { font-size: 11px; border-bottom: 1px solid #ccc; padding-bottom: 6px; margin-bottom: 8px; }
+          .section-title { font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 6px; }
+          .total-row td { font-weight: bold; }
+          .text-right { text-align: right; }
+          .assinaturas { display: flex; justify-content: space-around; margin-top: 40px; }
+          .assinatura { text-align: center; }
+          .assinatura-linha { border-top: 1px solid #000; width: 200px; margin-bottom: 4px; }
+          .assinatura-label { font-size: 11px; }
+          .rodape { margin-top: 20px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 9px; color: #666; }
+          .marcado { background-color: #e3f2fd; }
+          .obs-box { margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+          .obs-title { font-weight: bold; font-size: 11px; margin-bottom: 4px; }
+          .obs-text { font-size: 11px; }
+          @media print {
+            body { padding: 0; }
+            @page { margin: 10mm; }
+          }
+        </style>
+      </head>
+      <body>
+        ${conteudo.innerHTML}
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() { window.close(); };
+          };
+        <\/script>
+      </body>
+      </html>
+    `)
+    janelaImpressao.document.close()
   }
 
   const handleDownloadPDF = () => {

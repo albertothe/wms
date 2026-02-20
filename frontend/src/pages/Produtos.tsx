@@ -1,3 +1,4 @@
+//frontend/src/pages/Produtos.tsx
 "use client"
 
 import React, { useEffect, useState, useMemo, useContext } from "react"
@@ -132,6 +133,8 @@ const Produtos = () => {
   const [abaAtiva, setAbaAtiva] = useState(0)
   const [filtroDigitado, setFiltroDigitado] = useState("")
   const [carregandoTabela, setCarregandoTabela] = useState(false)
+  const [ultimaDigitacao, setUltimaDigitacao] = useState<number>(0)
+  const [velocidadeDigitacao, setVelocidadeDigitacao] = useState<number>(0)
 
   const [modalAberto, setModalAberto] = useState(false)
   const [modalEditarAberto, setModalEditarAberto] = useState(false)
@@ -178,9 +181,34 @@ const Produtos = () => {
   // Memoize produtos filtrados para melhorar o desempenho
   const produtosFiltrados = React.useMemo(() => {
     return produtos.filter(
-      (p) => p.produto.toLowerCase().includes(filtro.toLowerCase()) || p.codproduto.includes(filtro),
+      (p) =>
+        p.produto.toLowerCase().includes(filtro.toLowerCase()) ||
+        p.codproduto.includes(filtro) ||
+        p.codbarra.includes(filtro), // adicionar busca por código de barras
     )
   }, [produtos, filtro])
+
+  useEffect(() => {
+    if (!filtro || produtosFiltrados.length === 0) return
+
+    // Se há apenas um produto encontrado e foi digitado rapidamente (leitor de código de barras)
+    if (produtosFiltrados.length === 1 && velocidadeDigitacao < 100) {
+      const produtoEncontrado = produtosFiltrados[0]
+
+      // Auto-expandir o produto
+      if (!expandidoProduto[produtoEncontrado.codproduto]) {
+        setTimeout(() => {
+          toggleProduto(produtoEncontrado)
+        }, 300)
+
+        // Limpar filtro após 2 segundos para próxima leitura
+        setTimeout(() => {
+          setFiltroDigitado("")
+          setFiltro("")
+        }, 2000)
+      }
+    }
+  }, [filtro, produtosFiltrados, velocidadeDigitacao, expandidoProduto])
 
   const formatarNumero = (valor: number | string) => {
     const num = Number(valor)
@@ -770,14 +798,25 @@ const Produtos = () => {
         >
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
-              label="Buscar por nome ou código"
+              label="Buscar por nome, código ou código de barras"
               variant="outlined"
               fullWidth
               value={filtroDigitado}
               onChange={(e) => {
-                setFiltroDigitado(e.target.value)
-                setFiltro(e.target.value)
+                const novoTexto = e.target.value
+                const agora = Date.now()
+                const diferencaTempo = agora - ultimaDigitacao
+                setVelocidadeDigitacao(diferencaTempo)
+                setUltimaDigitacao(agora)
+
+                setFiltroDigitado(novoTexto)
+                setFiltro(novoTexto)
                 setPagina(0)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setVelocidadeDigitacao(0)
+                }
               }}
               InputProps={{
                 startAdornment: (
