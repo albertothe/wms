@@ -56,6 +56,7 @@ interface PreNotaCapa {
   prenota: string
   np: string
   tipo: string
+  tipoentrega?: string
   status: string
   separacao: string
   coddestinario: string
@@ -163,6 +164,7 @@ const PainelSaida: React.FC = () => {
   const [statusFiltro, setStatusFiltro] = useState("")
   const [tipoFiltro, setTipoFiltro] = useState("")
   const [lojaFiltro, setLojaFiltro] = useState("")
+  const [tipoEntregaFiltro, setTipoEntregaFiltro] = useState("")
   const [pagina, setPagina] = useState(0)
   const [linhasPorPagina, setLinhasPorPagina] = useState(10)
   const [carregando, setCarregando] = useState(true)
@@ -634,7 +636,8 @@ const PainelSaida: React.FC = () => {
     const filtroStatus = statusFiltro ? pn.status === statusFiltro : true
     const filtroTipo = tipoFiltro ? pn.tipo === tipoFiltro : true
     const filtroLoja = lojaFiltro ? pn.codloja === lojaFiltro : true
-    return buscaTexto && filtroStatus && filtroTipo && filtroLoja
+    const filtroTipoEntrega = tipoEntregaFiltro ? (pn.tipoentrega || "") === tipoEntregaFiltro : true
+    return buscaTexto && filtroStatus && filtroTipo && filtroLoja && filtroTipoEntrega
   })
 
   const handleChangePagina = (_: unknown, novaPagina: number) => setPagina(novaPagina)
@@ -646,12 +649,14 @@ const PainelSaida: React.FC = () => {
   const statusUnicos = Array.from(new Set(preNotas.map((p) => p.status)))
   const tiposUnicos = Array.from(new Set(preNotas.map((p) => p.tipo)))
   const lojasUnicas = Array.from(new Set(preNotas.map((p) => p.codloja)))
+  const tiposEntregaUnicos = Array.from(new Set(preNotas.map((p) => p.tipoentrega).filter(Boolean)))
 
   const limparFiltros = () => {
     setFiltro("")
     setStatusFiltro("")
     setTipoFiltro("")
     setLojaFiltro("")
+    setTipoEntregaFiltro("")
     setPagina(0)
   }
 
@@ -792,6 +797,29 @@ const PainelSaida: React.FC = () => {
                 </Select>
               </FormControl>
 
+              <FormControl sx={{ minWidth: 200 }} size="small">
+                <InputLabel id="tipo-entrega-label">Tipo Entrega</InputLabel>
+                <Select
+                  labelId="tipo-entrega-label"
+                  value={tipoEntregaFiltro}
+                  label="Tipo Entrega"
+                  onChange={(e) => setTipoEntregaFiltro(e.target.value)}
+                  sx={{
+                    borderRadius: 1,
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: corTopo,
+                    },
+                  }}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  {tiposEntregaUnicos.map((te, i) => (
+                    <MenuItem key={i} value={te}>
+                      {te}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
               <Button
                 variant="outlined"
                 startIcon={<ClearIcon />}
@@ -811,7 +839,7 @@ const PainelSaida: React.FC = () => {
               </Button>
             </Box>
 
-            {(statusFiltro || tipoFiltro || lojaFiltro || filtro) && (
+            {(statusFiltro || tipoFiltro || lojaFiltro || tipoEntregaFiltro || filtro) && (
               <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
                 {statusFiltro && (
                   <Chip
@@ -833,6 +861,14 @@ const PainelSaida: React.FC = () => {
                   <Chip
                     label={`Loja: ${lojaFiltro}`}
                     onDelete={() => setLojaFiltro("")}
+                    size="small"
+                    sx={{ bgcolor: alpha(corTopo, 0.1) }}
+                  />
+                )}
+                {tipoEntregaFiltro && (
+                  <Chip
+                    label={`Tipo Entrega: ${tipoEntregaFiltro}`}
+                    onDelete={() => setTipoEntregaFiltro("")}
                     size="small"
                     sx={{ bgcolor: alpha(corTopo, 0.1) }}
                   />
@@ -931,6 +967,7 @@ const PainelSaida: React.FC = () => {
                 <TableCell sx={{ width: 50, p: 1.5 }}></TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Data</TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Loja</TableCell>
+                <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Tipo Entrega</TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>OP</TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Pré-Nota</TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Nota</TableCell>
@@ -973,6 +1010,7 @@ const PainelSaida: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ p: 1.5 }}>{formatarData(pn.data)}</TableCell>
                       <TableCell sx={{ p: 1.5 }}>{pn.codloja}</TableCell>
+                      <TableCell sx={{ p: 1.5 }}>{pn.tipoentrega || "-"}</TableCell>
                       <TableCell sx={{ p: 1.5 }}>{pn.op}</TableCell>
                       <TableCell sx={{ p: 1.5, fontWeight: 500 }}>{pn.prenota}</TableCell>
                       <TableCell sx={{ p: 1.5 }}>{pn.np}</TableCell>
