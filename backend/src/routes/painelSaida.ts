@@ -21,6 +21,7 @@ router.get("/", async (req, res) => {
         prenota,
         np,
         tipo,
+        tipoentrega,
         status,
         separacao,
         coddestinario,
