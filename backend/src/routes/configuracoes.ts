@@ -44,9 +44,8 @@ router.get("/public", async (req, res) => {
       })
     }
   } catch (error) {
-    console.error("Erro ao buscar configurações públicas:", error)
-    res.status(500).json({
-      error: "Erro ao buscar configurações",
+    console.error("Erro ao buscar configurações públicas, retornando padrão:", error)
+    res.json({
       nome_empresa: "Sistema WMS",
       cor_topo: "#0a0a6b",
       modelo_impressao_prenota: Number.parseInt(process.env.PRENOTA_PRINT_MODEL || "1"),
@@ -114,15 +113,22 @@ router.get("/", async (req, res) => {
       })
     }
   } catch (error) {
-    console.error("Erro ao buscar configurações completas:", error)
-    res.status(500).json({
-      error: "Erro ao buscar configurações",
+    console.error("Erro ao buscar configurações completas, retornando padrão:", error)
+    res.json({
       // Retornar configurações padrão em caso de erro
+      id_empresa: 1,
       nome_empresa: "Sistema WMS",
       cor_topo: "#0a0a6b",
       usa_4_niveis: false,
+      cod_cd: "00",
+      categoria_inicial: "01001",
+      categoria_final: "99999",
       modelo_impressao_prenota: Number.parseInt(process.env.PRENOTA_PRINT_MODEL || "1"),
       tipo_impressao_etiqueta: Number.parseInt(process.env.ETIQUETA_PRINT_TYPE || "1"),
+      endereco_empresa: "",
+      telefone_empresa: "",
+      cnpj_empresa: "",
+      logo_empresa: null,
     })
   }
 })
