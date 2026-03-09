@@ -214,7 +214,7 @@ router.get("/", async (_req, res) => {
        LEFT JOIN wms_separacao_itens i ON i.chave = s.chave
        LEFT JOIN vs_wms_fpainel_saida v
          ON v.chave::text = s.chave::text
-       GROUP BY s.chave, s.codloja, s.np, s.usuario_atribuido, s.data_inicio, s.data_fim, s.status
+       GROUP BY s.chave, s.codloja, s.np, s.usuario_atribuido, s.data_inicio, s.data_fim, s.status, s.data_atribuicao
        ORDER BY COALESCE(s.data_inicio, s.data_atribuicao) DESC`,
     )
 
