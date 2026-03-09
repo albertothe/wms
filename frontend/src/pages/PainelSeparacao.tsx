@@ -75,7 +75,6 @@ const PainelSeparacao: React.FC = () => {
   const [itensPorChave, setItensPorChave] = useState<Record<string, ItemSeparacao[]>>({})
   const [carregandoItens, setCarregandoItens] = useState<Record<string, boolean>>({})
   const [produtosExpandidos, setProdutosExpandidos] = useState<Record<string, boolean>>({})
-  const [produtosConferidos, setProdutosConferidos] = useState<Record<string, string[]>>({})
 
   const buscarSeparacoes = useCallback(async () => {
     try {
@@ -156,24 +155,49 @@ const PainelSeparacao: React.FC = () => {
   const toggleProduto = (chave: string, codproduto: string) => {
     const chaveProduto = `${chave}_${codproduto}`
     setProdutosExpandidos((prev) => ({ ...prev, [chaveProduto]: !prev[chaveProduto] }))
-    setProdutosConferidos((prev) => {
-      const conferidos = new Set(prev[chave] || [])
-      conferidos.add(codproduto)
-      return { ...prev, [chave]: Array.from(conferidos) }
-    })
   }
 
   const podeFinalizar = (separacao: Separacao) => {
     const itens = itensPorChave[separacao.chave] || []
     if (itens.length === 0) return false
     const todosSeparados = itens.every((item) => Number(item.qtde_separada) >= Number(item.qtde_total))
-    const todosConferidos = itens.every((item) => (produtosConferidos[separacao.chave] || []).includes(item.codproduto))
-    return todosSeparados && todosConferidos && Number(separacao.progresso || 0) >= 100
+    return todosSeparados && Number(separacao.progresso || 0) >= 100
   }
 
   const finalizarSeparacao = async (separacao: Separacao) => {
     await api.post("/separacao/finalizar", { chave: separacao.chave })
     await Promise.all([buscarSeparacoes(), buscarItens(separacao.chave)])
+  }
+
+  const acaoDisponivel = (item: Separacao) => {
+    if (item.status === "F") {
+      return <Chip size="small" color="success" label="Finalizada" />
+    }
+
+    if (item.status === "P") {
+      return (
+        <Button size="small" variant="contained" onClick={() => iniciarSeparacao(item)}>
+          Iniciar
+        </Button>
+      )
+    }
+
+    if (podeFinalizar(item)) {
+      return (
+        <Button
+          size="small"
+          variant="contained"
+          color="success"
+          onClick={() => {
+            void finalizarSeparacao(item)
+          }}
+        >
+          Finalizar Separação
+        </Button>
+      )
+    }
+
+    return <Typography variant="caption">Em andamento</Typography>
   }
 
   return (
@@ -263,14 +287,7 @@ const PainelSeparacao: React.FC = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                      <TableCell align="center">
-                        {item.status === "P" && (
-                          <Button size="small" variant="contained" onClick={() => iniciarSeparacao(item)}>
-                            Iniciar
-                          </Button>
-                        )}
-                        {item.status === "F" && <Chip size="small" color="success" label="Finalizada" />}
-                      </TableCell>
+                      <TableCell align="center">{acaoDisponivel(item)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell colSpan={10} sx={{ p: 0, borderBottom: 0 }}>
@@ -321,8 +338,10 @@ const PainelSeparacao: React.FC = () => {
                                                   size="small"
                                                   type="number"
                                                   defaultValue={itemProduto.qtde_separada}
+                                                  disabled={item.status === "F"}
                                                   inputProps={{ min: 0, max: itemProduto.qtde_total, step: "0.01" }}
                                                   onBlur={(e) => {
+                                                    if (item.status === "F") return
                                                     void atualizarItem(
                                                       item.chave,
                                                       itemProduto.codproduto,
@@ -340,18 +359,6 @@ const PainelSeparacao: React.FC = () => {
                                 </TableBody>
                               </Table>
                             )}
-                            <Box mt={2} display="flex" justifyContent="flex-end">
-                              <Button
-                                variant="contained"
-                                color="success"
-                                disabled={item.status === "F" || !podeFinalizar(item)}
-                                onClick={() => {
-                                  void finalizarSeparacao(item)
-                                }}
-                              >
-                                Finalizar Separação
-                              </Button>
-                            </Box>
                           </Box>
                         </Collapse>
                       </TableCell>
