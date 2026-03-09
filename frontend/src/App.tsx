@@ -15,6 +15,7 @@ import Configuracoes from "./pages/Configuracoes"
 import ControleAcesso from "./pages/ControleAcesso"
 import PainelEntrada from "./pages/PainelEntrada"
 import PainelSaida from "./pages/PainelSaida"
+import PainelSeparacao from "./pages/PainelSeparacao"
 import ImprimirEtiquetasEnderecos from "./pages/ImprimirEtiquetasEnderecos"
 
 const theme = createTheme(
@@ -122,6 +123,14 @@ function App() {
               element={
                 <ProtectedRoute requiredPermission={{ rota: "painelsaida", tipo: "visualizar" }}>
                   <PainelSaida />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/painelseparacao"
+              element={
+                <ProtectedRoute requiredPermission={{ rota: "painelseparacao", tipo: "visualizar" }}>
+                  <PainelSeparacao />
                 </ProtectedRoute>
               }
             />

@@ -11,6 +11,7 @@ import authRoutes, { verificarToken } from "./routes/auth"
 import controleAcessoRoutes from "./routes/controleAcesso"
 import dashboardRoutes from "./routes/dashboard"
 import impressoraZebraRoutes from "./routes/impressoraZebra"
+import separacaoRoutes from "./routes/separacao"
 import { logger } from "./utils/logger"
 
 const app = express()
@@ -56,6 +57,7 @@ app.use("/configuracoes", configuracoesRoutes)
 app.use("/controle-acesso", controleAcessoRoutes)
 app.use("/dashboard", dashboardRoutes)
 app.use("/impressora/zebra", impressoraZebraRoutes)
+app.use("/separacao", separacaoRoutes)
 
 // Iniciar o servidor
 app.listen(PORT, () => {

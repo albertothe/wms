@@ -15,20 +15,25 @@ router.get("/", async (req, res) => {
   try {
     const query = `
       SELECT DISTINCT
-        data,
-        codloja, 
-        op,
-        prenota,
-        np,
-        tipo,
-        tipoentrega,
-        status,
-        separacao,
-        coddestinario,
-        destinario,
-        chave
-      FROM vs_wms_fpainel_saida
-      ORDER BY data DESC
+        p.data,
+        p.codloja,
+        p.op,
+        p.prenota,
+        p.np,
+        p.tipo,
+        p.tipoentrega,
+        p.status,
+        p.separacao,
+        p.coddestinario,
+        p.destinario,
+        p.chave,
+        s.status AS separacao_status,
+        s.usuario_atribuido AS separador
+      FROM vs_wms_fpainel_saida p
+      LEFT JOIN wms_separacoes s
+        ON s.codloja = p.codloja
+       AND s.np = p.np
+      ORDER BY p.data DESC
     `
     const result = await productPool.query(query)
     res.json(result.rows)
