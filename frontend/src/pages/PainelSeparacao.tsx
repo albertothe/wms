@@ -35,6 +35,7 @@ interface Separacao {
   cliente: string
   separador: string
   data_inicio: string | null
+  data_fim: string | null
   status: "P" | "S" | "F"
   progresso: number
 }
@@ -46,25 +47,27 @@ interface ItemSeparacao {
   qtde_separada: number
 }
 
-const formatarTempo = (dataInicio: string | null): string => {
+const formatarTempo = (dataInicio: string | null, dataFim: string | null): string => {
   if (!dataInicio) return "-"
   const inicio = new Date(dataInicio).getTime()
-  const diff = Math.max(0, Date.now() - inicio)
+  const fim = dataFim ? new Date(dataFim).getTime() : Date.now()
+  const diff = Math.max(0, fim - inicio)
   const minutos = Math.floor(diff / 60000)
   const segundos = Math.floor((diff % 60000) / 1000)
   return `${minutos}m ${segundos}s`
 }
 
-const obterCorTempo = (dataInicio: string | null): "success" | "warning" | "error" | "default" => {
+const obterCorTempo = (dataInicio: string | null, dataFim: string | null): "success" | "warning" | "error" | "default" => {
   if (!dataInicio) return "default"
-  const diffMin = (Date.now() - new Date(dataInicio).getTime()) / 60000
+  const fim = dataFim ? new Date(dataFim).getTime() : Date.now()
+  const diffMin = (fim - new Date(dataInicio).getTime()) / 60000
   if (diffMin <= 5) return "success"
   if (diffMin <= 10) return "warning"
   return "error"
 }
 
 const PainelSeparacao: React.FC = () => {
-  const { empresa } = useAuth()
+  const { empresa, corTopo } = useAuth()
   const nomeEmpresa = empresa?.nome || "Sistema WMS"
   const [carregando, setCarregando] = useState(true)
   const [separacoes, setSeparacoes] = useState<Separacao[]>([])
@@ -92,7 +95,10 @@ const PainelSeparacao: React.FC = () => {
       buscarSeparacoes()
     }, 30000)
     const relogio = setInterval(() => {
-      setSeparacoes((prev) => [...prev])
+      setSeparacoes((prev) => {
+        if (prev.every((item) => item.status === "F")) return prev
+        return [...prev]
+      })
     }, 1000)
 
     return () => {
@@ -141,10 +147,10 @@ const PainelSeparacao: React.FC = () => {
   }
 
   return (
-    <Layout corTopo="#0a0a6b" nomeEmpresa={nomeEmpresa}>
+    <Layout corTopo={corTopo} nomeEmpresa={nomeEmpresa}>
       <Container maxWidth={false} sx={{ py: 3 }}>
         <Paper sx={{ p: 3, mb: 2, borderRadius: 2, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" }}>
-          <Typography variant="h5" sx={{ mb: 2, color: "#0a0a6b", fontWeight: 700 }}>
+          <Typography variant="h5" sx={{ mb: 2, color: corTopo, fontWeight: 700 }}>
             Painel de Separação
           </Typography>
           <TextField
@@ -164,6 +170,7 @@ const PainelSeparacao: React.FC = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Separador</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Início</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Data/Hora Final</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Tempo</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Progresso</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
@@ -174,13 +181,13 @@ const PainelSeparacao: React.FC = () => {
             <TableBody>
               {carregando ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : separacoesFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={8} align="center">
                     <Alert severity="info">Nenhuma separação encontrada.</Alert>
                   </TableCell>
                 </TableRow>
@@ -191,8 +198,13 @@ const PainelSeparacao: React.FC = () => {
                     <TableCell>{item.cliente || "-"}</TableCell>
                     <TableCell>{item.separador || "-"}</TableCell>
                     <TableCell>{item.data_inicio ? new Date(item.data_inicio).toLocaleString("pt-BR") : "-"}</TableCell>
+                    <TableCell>{item.data_fim ? new Date(item.data_fim).toLocaleString("pt-BR") : "-"}</TableCell>
                     <TableCell>
-                      <Chip size="small" color={obterCorTempo(item.data_inicio)} label={formatarTempo(item.data_inicio)} />
+                      <Chip
+                        size="small"
+                        color={obterCorTempo(item.data_inicio, item.data_fim)}
+                        label={formatarTempo(item.data_inicio, item.data_fim)}
+                      />
                     </TableCell>
                     <TableCell sx={{ minWidth: 180 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
