@@ -137,8 +137,14 @@ router.post("/item", async (req, res) => {
   const chaveNormalizada = normalizarTextoOpcional(chave)
   const codlojaNormalizada = normalizarInteiroOpcional(codloja)
   const npNormalizado = normalizarTextoOpcional(np)
+  const codprodutoNormalizado = normalizarTextoOpcional(codproduto)
+  const qtdeSeparadaNormalizada = Number(qtde_separada)
 
-  if ((!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) || !codproduto || qtde_separada === undefined) {
+  if (
+    (!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) ||
+    !codprodutoNormalizado ||
+    !Number.isFinite(qtdeSeparadaNormalizada)
+  ) {
     return res.status(400).json({ erro: "chave ou codloja/np, codproduto e qtde_separada são obrigatórios" })
   }
 
@@ -146,10 +152,10 @@ router.post("/item", async (req, res) => {
     const result = await productPool.query(
       `UPDATE wms_separacao_itens
        SET qtde_separada = LEAST(qtde_total, GREATEST(0, $4))
-       WHERE codproduto = $3
-         AND (chave = $1 OR (codloja = $2 AND np = $5))
+       WHERE codproduto::text = $3::text
+         AND (chave::text = $1::text OR (codloja = $2 AND np::text = $5::text))
        RETURNING *`,
-      [chaveNormalizada, codlojaNormalizada, codproduto, qtde_separada, npNormalizado],
+      [chaveNormalizada, codlojaNormalizada, codprodutoNormalizado, qtdeSeparadaNormalizada, npNormalizado],
     )
 
     if (result.rows.length === 0) {
@@ -178,7 +184,7 @@ router.post("/finalizar", async (req, res) => {
       `UPDATE wms_separacoes
        SET status = 'F',
            data_fim = NOW()
-       WHERE chave = $1 OR (codloja = $2 AND np = $3)
+       WHERE chave::text = $1::text OR (codloja = $2 AND np::text = $3::text)
        RETURNING *`,
       [chaveNormalizada, codlojaNormalizada, npNormalizado],
     )
@@ -208,7 +214,7 @@ router.get("/itens", async (req, res) => {
     const result = await productPool.query(
       `SELECT codproduto, produto, qtde_total, qtde_separada
        FROM wms_separacao_itens
-       WHERE chave = $1 OR (codloja = $2 AND np = $3)
+       WHERE chave::text = $1::text OR (codloja = $2 AND np::text = $3::text)
        ORDER BY produto`,
       [chaveNormalizada, codlojaNormalizada, npNormalizado],
     )
