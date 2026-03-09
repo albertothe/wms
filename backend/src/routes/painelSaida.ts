@@ -31,8 +31,7 @@ router.get("/", async (req, res) => {
         s.usuario_atribuido AS separador
       FROM vs_wms_fpainel_saida p
       LEFT JOIN wms_separacoes s
-        ON s.codloja::text = p.codloja::text
-       AND s.np::text = p.np::text
+        ON s.chave::text = p.chave::text
       ORDER BY p.data DESC
     `
     const result = await productPool.query(query)

@@ -29,6 +29,7 @@ import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
 
 interface Separacao {
+  chave: string
   codloja: number
   np: string
   cliente: string
@@ -80,8 +81,8 @@ const PainelSeparacao: React.FC = () => {
     }
   }, [])
 
-  const buscarItens = useCallback(async (codloja: number, np: string) => {
-    const response = await api.get("/separacao/itens", { params: { codloja, np } })
+  const buscarItens = useCallback(async (chave: string) => {
+    const response = await api.get("/separacao/itens", { params: { chave } })
     setItens(response.data)
   }, [])
 
@@ -116,24 +117,23 @@ const PainelSeparacao: React.FC = () => {
     if (!detalheAberto) return
 
     await api.post("/separacao/item", {
-      codloja: detalheAberto.codloja,
-      np: detalheAberto.np,
+      chave: detalheAberto.chave,
       codproduto,
       qtde_separada: qtde,
     })
 
-    await Promise.all([buscarItens(detalheAberto.codloja, detalheAberto.np), buscarSeparacoes()])
+    await Promise.all([buscarItens(detalheAberto.chave), buscarSeparacoes()])
   }
 
   const iniciarSeparacao = async (item: Separacao) => {
-    await api.post("/separacao/iniciar", { codloja: item.codloja, np: item.np })
+    await api.post("/separacao/iniciar", { chave: item.chave })
     await buscarSeparacoes()
   }
 
   const finalizarSeparacao = async () => {
     if (!detalheAberto) return
-    await api.post("/separacao/finalizar", { codloja: detalheAberto.codloja, np: detalheAberto.np })
-    await Promise.all([buscarSeparacoes(), buscarItens(detalheAberto.codloja, detalheAberto.np)])
+    await api.post("/separacao/finalizar", { chave: detalheAberto.chave })
+    await Promise.all([buscarSeparacoes(), buscarItens(detalheAberto.chave)])
   }
 
   return (
@@ -182,7 +182,7 @@ const PainelSeparacao: React.FC = () => {
                 </TableRow>
               ) : (
                 separacoesFiltradas.map((item, idx) => (
-                  <TableRow key={`${item.codloja}-${item.np}`} sx={{ "&:nth-of-type(even)": { backgroundColor: alpha("#f3f4f6", 0.3) } }}>
+                  <TableRow key={item.chave} sx={{ "&:nth-of-type(even)": { backgroundColor: alpha("#f3f4f6", 0.3) } }}>
                     <TableCell>{item.codloja} / {item.np}</TableCell>
                     <TableCell>{item.cliente || "-"}</TableCell>
                     <TableCell>{item.separador || "-"}</TableCell>
@@ -215,7 +215,7 @@ const PainelSeparacao: React.FC = () => {
                           color={item.status === "F" ? "success" : "primary"}
                           onClick={async () => {
                             setDetalheAberto(item)
-                            await buscarItens(item.codloja, item.np)
+                            await buscarItens(item.chave)
                           }}
                         >
                           Detalhes

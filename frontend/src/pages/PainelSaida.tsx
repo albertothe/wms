@@ -193,7 +193,7 @@ const PainelSaida: React.FC = () => {
     tipo: "info" as "error" | "info" | "success" | "warning",
   })
   const [usuariosSeparacao, setUsuariosSeparacao] = useState<string[]>([])
-  const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; codloja: string; np: string } | null>(null)
+  const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; chave: string; codloja: string; np: string } | null>(null)
   const [usuarioSelecionado, setUsuarioSelecionado] = useState("")
 
   const { empresa } = useAuth()
@@ -226,18 +226,24 @@ const PainelSaida: React.FC = () => {
 
     try {
       await api.post("/separacao/atribuir", {
+        chave: modalAtribuir.chave,
         codloja: modalAtribuir.codloja,
         np: modalAtribuir.np,
         usuario: usuarioSelecionado,
       })
 
+      setPreNotas((prev) =>
+        prev.map((item) =>
+          item.chave === modalAtribuir.chave
+            ? { ...item, separacao_status: "P", separador: usuarioSelecionado }
+            : item,
+        ),
+      )
       setSnackbar({
         aberta: true,
         mensagem: "Separação atribuída com sucesso",
         tipo: "success",
       })
-      setModalAtribuir(null)
-      setUsuarioSelecionado("")
       await carregarPreNotas(false)
     } catch (error: any) {
       setSnackbar({
@@ -245,6 +251,9 @@ const PainelSaida: React.FC = () => {
         mensagem: error?.response?.data?.erro || "Erro ao atribuir separação",
         tipo: "error",
       })
+    } finally {
+      setModalAtribuir(null)
+      setUsuarioSelecionado("")
     }
   }
 
@@ -1081,7 +1090,7 @@ const PainelSaida: React.FC = () => {
                             variant="outlined"
                             disabled={Boolean(pn.separacao_status)}
                             onClick={() => {
-                              setModalAtribuir({ aberto: true, codloja: pn.codloja, np: pn.np })
+                              setModalAtribuir({ aberto: true, chave: pn.chave, codloja: pn.codloja, np: pn.np })
                               setUsuarioSelecionado("")
                             }}
                           >

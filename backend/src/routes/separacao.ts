@@ -21,10 +21,10 @@ router.get("/usuarios", async (_req, res) => {
 })
 
 router.post("/atribuir", async (req, res) => {
-  const { codloja, np, usuario } = req.body
+  const { chave, codloja, np, usuario } = req.body
 
-  if (!codloja || !np || !usuario) {
-    return res.status(400).json({ erro: "codloja, np e usuario são obrigatórios" })
+  if (!chave || !codloja || !np || !usuario) {
+    return res.status(400).json({ erro: "chave, codloja, np e usuario são obrigatórios" })
   }
 
   try {
@@ -32,9 +32,9 @@ router.post("/atribuir", async (req, res) => {
 
     const existente = await productPool.query(
       `SELECT id FROM wms_separacoes
-       WHERE codloja = $1::integer AND np = $2::varchar(20)
+       WHERE chave = $1::varchar(10)
        LIMIT 1`,
-      [codloja, np],
+      [chave],
     )
 
     if (existente.rows.length > 0) {
@@ -43,15 +43,16 @@ router.post("/atribuir", async (req, res) => {
     }
 
     const separacao = await productPool.query(
-      `INSERT INTO wms_separacoes (codloja, np, usuario_atribuido, data_atribuicao, status)
-       VALUES ($1::integer, $2::varchar(20), $3::varchar(50), NOW(), 'P'::char(1))
+      `INSERT INTO wms_separacoes (chave, codloja, np, usuario_atribuido, data_atribuicao, status)
+       VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(50), NOW(), 'P'::char(1))
        RETURNING *`,
-      [codloja, np, usuario],
+      [chave, codloja, np, usuario],
     )
 
     const itensInseridos = await productPool.query(
-      `INSERT INTO wms_separacao_itens (codloja, np, codproduto, produto, qtde_total, qtde_separada)
+      `INSERT INTO wms_separacao_itens (chave, codloja, np, codproduto, produto, qtde_total, qtde_separada)
        SELECT
+         p.chave::varchar(10),
          p.codloja::integer,
          p.np::varchar(20),
          p.codproduto::varchar(30),
@@ -59,9 +60,9 @@ router.post("/atribuir", async (req, res) => {
          SUM(COALESCE(p.qtde_saida, 0))::numeric AS qtde_total,
          0::numeric AS qtde_separada
        FROM vs_wms_fpainel_saida p
-       WHERE p.codloja::text = $1::text AND p.np::text = $2::text
-       GROUP BY p.codloja, p.np, p.codproduto`,
-      [codloja, np],
+       WHERE p.chave::text = $1::text
+       GROUP BY p.chave, p.codloja, p.np, p.codproduto`,
+      [chave],
     )
 
     if (itensInseridos.rowCount === 0) {
@@ -84,10 +85,10 @@ router.post("/atribuir", async (req, res) => {
 })
 
 router.post("/iniciar", async (req, res) => {
-  const { codloja, np } = req.body
+  const { chave, codloja, np } = req.body
 
-  if (!codloja || !np) {
-    return res.status(400).json({ erro: "codloja e np são obrigatórios" })
+  if (!chave && (!codloja || !np)) {
+    return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
   }
 
   try {
@@ -95,11 +96,10 @@ router.post("/iniciar", async (req, res) => {
       `UPDATE wms_separacoes
        SET status = 'S',
            data_inicio = COALESCE(data_inicio, NOW())
-       WHERE codloja = $1
-         AND np = $2
+       WHERE (chave = $1 OR (codloja = $2 AND np = $3))
          AND status <> 'F'
        RETURNING *`,
-      [codloja, np],
+      [chave ?? null, codloja ?? null, np ?? null],
     )
 
     if (result.rows.length === 0) {
@@ -114,19 +114,20 @@ router.post("/iniciar", async (req, res) => {
 })
 
 router.post("/item", async (req, res) => {
-  const { codloja, np, codproduto, qtde_separada } = req.body
+  const { chave, codloja, np, codproduto, qtde_separada } = req.body
 
-  if (!codloja || !np || !codproduto || qtde_separada === undefined) {
-    return res.status(400).json({ erro: "codloja, np, codproduto e qtde_separada são obrigatórios" })
+  if ((!chave && (!codloja || !np)) || !codproduto || qtde_separada === undefined) {
+    return res.status(400).json({ erro: "chave ou codloja/np, codproduto e qtde_separada são obrigatórios" })
   }
 
   try {
     const result = await productPool.query(
       `UPDATE wms_separacao_itens
        SET qtde_separada = LEAST(qtde_total, GREATEST(0, $4))
-       WHERE codloja = $1 AND np = $2 AND codproduto = $3
+       WHERE codproduto = $3
+         AND (chave = $1 OR (codloja = $2 AND np = $5))
        RETURNING *`,
-      [codloja, np, codproduto, qtde_separada],
+      [chave ?? null, codloja ?? null, codproduto, qtde_separada, np ?? null],
     )
 
     if (result.rows.length === 0) {
@@ -141,10 +142,10 @@ router.post("/item", async (req, res) => {
 })
 
 router.post("/finalizar", async (req, res) => {
-  const { codloja, np } = req.body
+  const { chave, codloja, np } = req.body
 
-  if (!codloja || !np) {
-    return res.status(400).json({ erro: "codloja e np são obrigatórios" })
+  if (!chave && (!codloja || !np)) {
+    return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
   }
 
   try {
@@ -152,9 +153,9 @@ router.post("/finalizar", async (req, res) => {
       `UPDATE wms_separacoes
        SET status = 'F',
            data_fim = NOW()
-       WHERE codloja = $1 AND np = $2
+       WHERE chave = $1 OR (codloja = $2 AND np = $3)
        RETURNING *`,
-      [codloja, np],
+      [chave ?? null, codloja ?? null, np ?? null],
     )
 
     if (result.rows.length === 0) {
@@ -169,19 +170,19 @@ router.post("/finalizar", async (req, res) => {
 })
 
 router.get("/itens", async (req, res) => {
-  const { codloja, np } = req.query
+  const { chave, codloja, np } = req.query
 
-  if (!codloja || !np) {
-    return res.status(400).json({ erro: "codloja e np são obrigatórios" })
+  if (!chave && (!codloja || !np)) {
+    return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
   }
 
   try {
     const result = await productPool.query(
       `SELECT codproduto, produto, qtde_total, qtde_separada
        FROM wms_separacao_itens
-       WHERE codloja = $1 AND np = $2
+       WHERE chave = $1 OR (codloja = $2 AND np = $3)
        ORDER BY produto`,
-      [codloja, np],
+      [chave ?? null, codloja ?? null, np ?? null],
     )
 
     res.json(result.rows)
@@ -195,6 +196,7 @@ router.get("/", async (_req, res) => {
   try {
     const result = await productPool.query(
       `SELECT
+         s.chave,
          s.codloja,
          s.np,
          MAX(v.destinario) AS cliente,
@@ -209,11 +211,10 @@ router.get("/", async (_req, res) => {
            ELSE ROUND((COALESCE(SUM(i.qtde_separada), 0) / NULLIF(SUM(i.qtde_total), 0)) * 100, 2)
          END AS progresso
        FROM wms_separacoes s
-       LEFT JOIN wms_separacao_itens i ON i.codloja = s.codloja AND i.np = s.np
+       LEFT JOIN wms_separacao_itens i ON i.chave = s.chave
        LEFT JOIN vs_wms_fpainel_saida v
-         ON v.codloja::text = s.codloja::text
-        AND v.np::text = s.np::text
-       GROUP BY s.codloja, s.np, s.usuario_atribuido, s.data_inicio, s.data_fim, s.status
+         ON v.chave::text = s.chave::text
+       GROUP BY s.chave, s.codloja, s.np, s.usuario_atribuido, s.data_inicio, s.data_fim, s.status
        ORDER BY COALESCE(s.data_inicio, s.data_atribuicao) DESC`,
     )
 
