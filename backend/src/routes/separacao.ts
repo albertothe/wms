@@ -7,13 +7,13 @@ const router = express.Router()
 router.get("/usuarios", async (_req, res) => {
   try {
     const result = await productPool.query(
-      `SELECT DISTINCT c_usuario
-       FROM a_usuari
-       WHERE c_usuario IS NOT NULL AND TRIM(c_usuario) <> ''
-       ORDER BY c_usuario`,
+      `SELECT DISTINCT usuario
+       FROM vs_wms_usuarios_separacao
+       WHERE usuario IS NOT NULL AND TRIM(usuario) <> ''
+       ORDER BY usuario`,
     )
 
-    res.json(result.rows.map((row) => row.c_usuario))
+    res.json(result.rows.map((row) => row.usuario))
   } catch (error) {
     logger.error("Erro ao buscar usuários para separação:", error)
     res.status(500).json({ erro: "Erro ao buscar usuários" })
@@ -59,7 +59,7 @@ router.post("/atribuir", async (req, res) => {
          SUM(COALESCE(p.qtde_saida, 0))::numeric AS qtde_total,
          0::numeric AS qtde_separada
        FROM vs_wms_fpainel_saida p
-       WHERE p.codloja = $1::integer AND p.np = $2::varchar(20)
+       WHERE p.codloja::text = $1::text AND p.np::text = $2::text
        GROUP BY p.codloja, p.np, p.codproduto`,
       [codloja, np],
     )
