@@ -32,6 +32,7 @@ interface Separacao {
   codloja: number
   np: string
   cliente: string
+  tipoentrega: string
   separador: string
   data_inicio: string | null
   data_fim: string | null
@@ -71,6 +72,8 @@ const PainelSeparacao: React.FC = () => {
   const [carregando, setCarregando] = useState(true)
   const [separacoes, setSeparacoes] = useState<Separacao[]>([])
   const [filtro, setFiltro] = useState("")
+  const [filtroUsuario, setFiltroUsuario] = useState("")
+  const [filtroTipoEntrega, setFiltroTipoEntrega] = useState("")
   const [detalhesExpandidos, setDetalhesExpandidos] = useState<Record<string, boolean>>({})
   const [itensPorChave, setItensPorChave] = useState<Record<string, ItemSeparacao[]>>({})
   const [carregandoItens, setCarregandoItens] = useState<Record<string, boolean>>({})
@@ -116,14 +119,24 @@ const PainelSeparacao: React.FC = () => {
   const separacoesFiltradas = useMemo(() => {
     return separacoes.filter((item) => {
       const busca = filtro.toLowerCase()
-      return (
+      const filtroUsuarioNormalizado = filtroUsuario.toLowerCase()
+      const filtroTipoEntregaNormalizado = filtroTipoEntrega.toLowerCase()
+
+      const atendeBuscaGeral =
         item.np?.toLowerCase().includes(busca) ||
         String(item.codloja).includes(busca) ||
         item.cliente?.toLowerCase().includes(busca) ||
         item.separador?.toLowerCase().includes(busca)
-      )
+
+      const atendeUsuario =
+        !filtroUsuarioNormalizado || (item.separador || "").toLowerCase().includes(filtroUsuarioNormalizado)
+
+      const atendeTipoEntrega =
+        !filtroTipoEntregaNormalizado || (item.tipoentrega || "").toLowerCase().includes(filtroTipoEntregaNormalizado)
+
+      return atendeBuscaGeral && atendeUsuario && atendeTipoEntrega
     })
-  }, [separacoes, filtro])
+  }, [separacoes, filtro, filtroUsuario, filtroTipoEntrega])
 
   const atualizarItem = async (chave: string, codproduto: string, qtde: number) => {
     try {
@@ -213,7 +226,22 @@ const PainelSeparacao: React.FC = () => {
             label="Buscar por loja, nota, cliente ou separador"
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
+            sx={{ mb: 2 }}
           />
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <TextField
+              size="small"
+              label="Filtrar por usuário"
+              value={filtroUsuario}
+              onChange={(e) => setFiltroUsuario(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="Filtrar por tipo de entrega"
+              value={filtroTipoEntrega}
+              onChange={(e) => setFiltroTipoEntrega(e.target.value)}
+            />
+          </Box>
         </Paper>
 
         <TableContainer component={Paper} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
@@ -224,6 +252,7 @@ const PainelSeparacao: React.FC = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Loja</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Nota</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Tipo Entrega</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Separador</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Início</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Data/Hora Final</TableCell>
@@ -237,13 +266,13 @@ const PainelSeparacao: React.FC = () => {
             <TableBody>
               {carregando ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : separacoesFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
+                  <TableCell colSpan={11} align="center">
                     <Alert severity="info">Nenhuma separação encontrada.</Alert>
                   </TableCell>
                 </TableRow>
@@ -265,6 +294,7 @@ const PainelSeparacao: React.FC = () => {
                       <TableCell>{item.codloja}</TableCell>
                     <TableCell>{item.np}</TableCell>
                     <TableCell>{item.cliente || "-"}</TableCell>
+                    <TableCell>{item.tipoentrega || "-"}</TableCell>
                     <TableCell>{item.separador || "-"}</TableCell>
                     <TableCell>{item.data_inicio ? new Date(item.data_inicio).toLocaleString("pt-BR") : "-"}</TableCell>
                     <TableCell>{item.data_fim ? new Date(item.data_fim).toLocaleString("pt-BR") : "-"}</TableCell>
@@ -290,7 +320,7 @@ const PainelSeparacao: React.FC = () => {
                       <TableCell align="center">{acaoDisponivel(item)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell colSpan={10} sx={{ p: 0, borderBottom: 0 }}>
+                      <TableCell colSpan={11} sx={{ p: 0, borderBottom: 0 }}>
                         <Collapse in={Boolean(detalhesExpandidos[item.chave])} timeout="auto" unmountOnExit>
                           <Box sx={{ p: 2, backgroundColor: "#f9fafb" }}>
                             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>

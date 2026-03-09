@@ -37,7 +37,7 @@ router.get("/usuarios", async (_req, res) => {
 })
 
 router.post("/atribuir", async (req, res) => {
-  const { chave, codloja, np, usuario } = req.body
+  const { chave, codloja, np, usuario, destinario, tipoentrega } = req.body
 
   if (!chave || !codloja || !np || !usuario) {
     return res.status(400).json({ erro: "chave, codloja, np e usuario são obrigatórios" })
@@ -45,6 +45,23 @@ router.post("/atribuir", async (req, res) => {
 
   try {
     await productPool.query("BEGIN")
+
+    const dadosVenda = await productPool.query(
+      `SELECT
+         MAX(destinario)::varchar(100) AS destinario,
+         MAX(tipoentrega)::varchar(15) AS tipoentrega
+       FROM vs_wms_fpainel_saida
+       WHERE chave::text = $1::text`,
+      [chave],
+    )
+
+    const destinarioNormalizado = normalizarTextoOpcional(destinario ?? dadosVenda.rows[0]?.destinario)
+    const tipoEntregaNormalizado = normalizarTextoOpcional(tipoentrega ?? dadosVenda.rows[0]?.tipoentrega)
+
+    if (!destinarioNormalizado || !tipoEntregaNormalizado) {
+      await productPool.query("ROLLBACK")
+      return res.status(400).json({ erro: "destinario e tipoentrega são obrigatórios" })
+    }
 
     const existente = await productPool.query(
       `SELECT id FROM wms_separacoes
@@ -59,10 +76,11 @@ router.post("/atribuir", async (req, res) => {
     }
 
     const separacao = await productPool.query(
-      `INSERT INTO wms_separacoes (chave, codloja, np, usuario_atribuido, data_atribuicao, status)
-       VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(50), NOW(), 'P'::char(1))
+      `INSERT INTO wms_separacoes
+         (chave, codloja, np, destinario, tipoentrega, usuario_atribuido, data_atribuicao, status)
+       VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(100), $5::varchar(15), $6::varchar(50), NOW(), 'P'::char(1))
        RETURNING *`,
-      [chave, codloja, np, usuario],
+      [chave, codloja, np, destinarioNormalizado, tipoEntregaNormalizado, usuario],
     )
 
     const itensInseridos = await productPool.query(
@@ -250,14 +268,18 @@ router.get("/itens", async (req, res) => {
   }
 })
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
+  const usuario = normalizarTextoOpcional(req.query.usuario)
+  const tipoentrega = normalizarTextoOpcional(req.query.tipoentrega)
+
   try {
     const result = await productPool.query(
       `SELECT
          s.chave,
          s.codloja,
          s.np,
-         MAX(v.destinario) AS cliente,
+         s.destinario AS cliente,
+         s.tipoentrega,
          s.usuario_atribuido AS separador,
          s.data_inicio,
          s.data_fim,
@@ -270,10 +292,21 @@ router.get("/", async (_req, res) => {
          END AS progresso
        FROM wms_separacoes s
        LEFT JOIN wms_separacao_itens i ON i.chave = s.chave
-       LEFT JOIN vs_wms_fpainel_saida v
-         ON v.chave::text = s.chave::text
-       GROUP BY s.chave, s.codloja, s.np, s.usuario_atribuido, s.data_inicio, s.data_fim, s.status, s.data_atribuicao
+       WHERE ($1::varchar(50) IS NULL OR s.usuario_atribuido::text = $1::text)
+         AND ($2::varchar(15) IS NULL OR s.tipoentrega::text = $2::text)
+       GROUP BY
+         s.chave,
+         s.codloja,
+         s.np,
+         s.destinario,
+         s.tipoentrega,
+         s.usuario_atribuido,
+         s.data_inicio,
+         s.data_fim,
+         s.status,
+         s.data_atribuicao
        ORDER BY COALESCE(s.data_inicio, s.data_atribuicao) DESC`,
+      [usuario, tipoentrega],
     )
 
     res.json(result.rows)

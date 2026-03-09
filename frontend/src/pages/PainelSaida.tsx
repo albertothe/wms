@@ -193,7 +193,7 @@ const PainelSaida: React.FC = () => {
     tipo: "info" as "error" | "info" | "success" | "warning",
   })
   const [usuariosSeparacao, setUsuariosSeparacao] = useState<string[]>([])
-  const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; chave: string; codloja: string; np: string } | null>(null)
+  const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; chave: string; codloja: string; np: string; destinario: string; tipoentrega?: string } | null>(null)
   const [usuarioSelecionado, setUsuarioSelecionado] = useState("")
 
   const { empresa } = useAuth()
@@ -234,6 +234,8 @@ const PainelSaida: React.FC = () => {
         chave: dadosSeparacao.chave,
         codloja: dadosSeparacao.codloja,
         np: dadosSeparacao.np,
+        destinario: dadosSeparacao.destinario,
+        tipoentrega: dadosSeparacao.tipoentrega,
         usuario,
       })
 
@@ -1094,7 +1096,14 @@ const PainelSaida: React.FC = () => {
                             variant="outlined"
                             disabled={Boolean(pn.separacao_status)}
                             onClick={() => {
-                              setModalAtribuir({ aberto: true, chave: pn.chave, codloja: pn.codloja, np: pn.np })
+                              setModalAtribuir({
+                                aberto: true,
+                                chave: pn.chave,
+                                codloja: pn.codloja,
+                                np: pn.np,
+                                destinario: pn.destinario,
+                                tipoentrega: pn.tipoentrega,
+                              })
                               setUsuarioSelecionado("")
                             }}
                           >
