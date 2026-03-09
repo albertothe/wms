@@ -32,7 +32,7 @@ router.post("/atribuir", async (req, res) => {
 
     const existente = await productPool.query(
       `SELECT id FROM wms_separacoes
-       WHERE codloja = $1 AND np = $2
+       WHERE codloja = $1::integer AND np = $2::varchar(20)
        LIMIT 1`,
       [codloja, np],
     )
@@ -44,7 +44,7 @@ router.post("/atribuir", async (req, res) => {
 
     const separacao = await productPool.query(
       `INSERT INTO wms_separacoes (codloja, np, usuario_atribuido, data_atribuicao, status)
-       VALUES ($1, $2, $3, NOW(), 'P')
+       VALUES ($1::integer, $2::varchar(20), $3::varchar(50), NOW(), 'P'::char(1))
        RETURNING *`,
       [codloja, np, usuario],
     )
@@ -52,14 +52,14 @@ router.post("/atribuir", async (req, res) => {
     const itensInseridos = await productPool.query(
       `INSERT INTO wms_separacao_itens (codloja, np, codproduto, produto, qtde_total, qtde_separada)
        SELECT
-         p.codloja,
-         p.np,
-         p.codproduto,
-         MAX(p.produto) AS produto,
-         SUM(COALESCE(p.qtde_saida, 0)) AS qtde_total,
-         0 AS qtde_separada
+         p.codloja::integer,
+         p.np::varchar(20),
+         p.codproduto::varchar(30),
+         MAX(p.produto)::varchar(200) AS produto,
+         SUM(COALESCE(p.qtde_saida, 0))::numeric AS qtde_total,
+         0::numeric AS qtde_separada
        FROM vs_wms_fpainel_saida p
-       WHERE p.codloja = $1 AND p.np = $2
+       WHERE p.codloja = $1::integer AND p.np = $2::varchar(20)
        GROUP BY p.codloja, p.np, p.codproduto`,
       [codloja, np],
     )
