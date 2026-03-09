@@ -210,7 +210,9 @@ router.get("/", async (_req, res) => {
          END AS progresso
        FROM wms_separacoes s
        LEFT JOIN wms_separacao_itens i ON i.codloja = s.codloja AND i.np = s.np
-       LEFT JOIN vs_wms_fpainel_saida v ON v.codloja = s.codloja AND v.np = s.np
+       LEFT JOIN vs_wms_fpainel_saida v
+         ON v.codloja::text = s.codloja::text
+        AND v.np::text = s.np::text
        GROUP BY s.codloja, s.np, s.usuario_atribuido, s.data_inicio, s.data_fim, s.status
        ORDER BY COALESCE(s.data_inicio, s.data_atribuicao) DESC`,
     )
