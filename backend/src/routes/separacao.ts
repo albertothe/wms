@@ -149,6 +149,18 @@ router.post("/item", async (req, res) => {
   }
 
   try {
+    const separacaoFinalizada = await productPool.query(
+      `SELECT status
+       FROM wms_separacoes
+       WHERE chave::text = $1::text OR (codloja = $2 AND np::text = $3::text)
+       LIMIT 1`,
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
+    )
+
+    if (separacaoFinalizada.rows[0]?.status === "F") {
+      return res.status(409).json({ erro: "Separação finalizada não pode ser alterada" })
+    }
+
     const result = await productPool.query(
       `UPDATE wms_separacao_itens
        SET qtde_separada = LEAST(qtde_total, GREATEST(0::numeric, $4::numeric))
