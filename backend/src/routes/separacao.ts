@@ -151,7 +151,7 @@ router.post("/item", async (req, res) => {
   try {
     const result = await productPool.query(
       `UPDATE wms_separacao_itens
-       SET qtde_separada = LEAST(qtde_total, GREATEST(0, $4))
+       SET qtde_separada = LEAST(qtde_total, GREATEST(0::numeric, $4::numeric))
        WHERE codproduto::text = $3::text
          AND (chave::text = $1::text OR (codloja = $2 AND np::text = $5::text))
        RETURNING *`,

@@ -116,13 +116,17 @@ const PainelSeparacao: React.FC = () => {
   const atualizarItem = async (codproduto: string, qtde: number) => {
     if (!detalheAberto) return
 
-    await api.post("/separacao/item", {
-      chave: detalheAberto.chave,
-      codproduto,
-      qtde_separada: qtde,
-    })
+    try {
+      await api.post("/separacao/item", {
+        chave: detalheAberto.chave,
+        codproduto,
+        qtde_separada: qtde,
+      })
 
-    await Promise.all([buscarItens(detalheAberto.chave), buscarSeparacoes()])
+      await Promise.all([buscarItens(detalheAberto.chave), buscarSeparacoes()])
+    } catch (error) {
+      console.error("Erro ao atualizar item da separação:", error)
+    }
   }
 
   const iniciarSeparacao = async (item: Separacao) => {
@@ -252,7 +256,9 @@ const PainelSeparacao: React.FC = () => {
                         type="number"
                         defaultValue={item.qtde_separada}
                         inputProps={{ min: 0, max: item.qtde_total, step: "0.01" }}
-                        onBlur={(e) => atualizarItem(item.codproduto, Number(e.target.value || 0))}
+                        onBlur={(e) => {
+                          void atualizarItem(item.codproduto, Number(e.target.value || 0))
+                        }}
                       />
                     </TableCell>
                   </TableRow>
