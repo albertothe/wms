@@ -6,12 +6,10 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
   CircularProgress,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  IconButton,
   LinearProgress,
   Paper,
   Table,
@@ -24,6 +22,7 @@ import {
   Typography,
   alpha,
 } from "@mui/material"
+import { ExpandMore } from "@mui/icons-material"
 import { Layout } from "../components/Layout"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -72,8 +71,11 @@ const PainelSeparacao: React.FC = () => {
   const [carregando, setCarregando] = useState(true)
   const [separacoes, setSeparacoes] = useState<Separacao[]>([])
   const [filtro, setFiltro] = useState("")
-  const [detalheAberto, setDetalheAberto] = useState<Separacao | null>(null)
-  const [itens, setItens] = useState<ItemSeparacao[]>([])
+  const [detalhesExpandidos, setDetalhesExpandidos] = useState<Record<string, boolean>>({})
+  const [itensPorChave, setItensPorChave] = useState<Record<string, ItemSeparacao[]>>({})
+  const [carregandoItens, setCarregandoItens] = useState<Record<string, boolean>>({})
+  const [produtosExpandidos, setProdutosExpandidos] = useState<Record<string, boolean>>({})
+  const [produtosConferidos, setProdutosConferidos] = useState<Record<string, string[]>>({})
 
   const buscarSeparacoes = useCallback(async () => {
     try {
@@ -85,8 +87,13 @@ const PainelSeparacao: React.FC = () => {
   }, [])
 
   const buscarItens = useCallback(async (chave: string) => {
-    const response = await api.get("/separacao/itens", { params: { chave } })
-    setItens(response.data)
+    setCarregandoItens((prev) => ({ ...prev, [chave]: true }))
+    try {
+      const response = await api.get("/separacao/itens", { params: { chave } })
+      setItensPorChave((prev) => ({ ...prev, [chave]: response.data }))
+    } finally {
+      setCarregandoItens((prev) => ({ ...prev, [chave]: false }))
+    }
   }, [])
 
   useEffect(() => {
@@ -119,17 +126,15 @@ const PainelSeparacao: React.FC = () => {
     })
   }, [separacoes, filtro])
 
-  const atualizarItem = async (codproduto: string, qtde: number) => {
-    if (!detalheAberto) return
-
+  const atualizarItem = async (chave: string, codproduto: string, qtde: number) => {
     try {
       await api.post("/separacao/item", {
-        chave: detalheAberto.chave,
+        chave,
         codproduto,
         qtde_separada: qtde,
       })
 
-      await Promise.all([buscarItens(detalheAberto.chave), buscarSeparacoes()])
+      await Promise.all([buscarItens(chave), buscarSeparacoes()])
     } catch (error) {
       console.error("Erro ao atualizar item da separação:", error)
     }
@@ -140,10 +145,35 @@ const PainelSeparacao: React.FC = () => {
     await buscarSeparacoes()
   }
 
-  const finalizarSeparacao = async () => {
-    if (!detalheAberto) return
-    await api.post("/separacao/finalizar", { chave: detalheAberto.chave })
-    await Promise.all([buscarSeparacoes(), buscarItens(detalheAberto.chave)])
+  const toggleDetalhes = async (chave: string) => {
+    const estaAberto = Boolean(detalhesExpandidos[chave])
+    setDetalhesExpandidos((prev) => ({ ...prev, [chave]: !estaAberto }))
+    if (!estaAberto && !itensPorChave[chave]) {
+      await buscarItens(chave)
+    }
+  }
+
+  const toggleProduto = (chave: string, codproduto: string) => {
+    const chaveProduto = `${chave}_${codproduto}`
+    setProdutosExpandidos((prev) => ({ ...prev, [chaveProduto]: !prev[chaveProduto] }))
+    setProdutosConferidos((prev) => {
+      const conferidos = new Set(prev[chave] || [])
+      conferidos.add(codproduto)
+      return { ...prev, [chave]: Array.from(conferidos) }
+    })
+  }
+
+  const podeFinalizar = (separacao: Separacao) => {
+    const itens = itensPorChave[separacao.chave] || []
+    if (itens.length === 0) return false
+    const todosSeparados = itens.every((item) => Number(item.qtde_separada) >= Number(item.qtde_total))
+    const todosConferidos = itens.every((item) => (produtosConferidos[separacao.chave] || []).includes(item.codproduto))
+    return todosSeparados && todosConferidos && Number(separacao.progresso || 0) >= 100
+  }
+
+  const finalizarSeparacao = async (separacao: Separacao) => {
+    await api.post("/separacao/finalizar", { chave: separacao.chave })
+    await Promise.all([buscarSeparacoes(), buscarItens(separacao.chave)])
   }
 
   return (
@@ -166,6 +196,7 @@ const PainelSeparacao: React.FC = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
+                <TableCell sx={{ width: 60 }}></TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Loja</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Nota</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
@@ -182,20 +213,32 @@ const PainelSeparacao: React.FC = () => {
             <TableBody>
               {carregando ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : separacoesFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Alert severity="info">Nenhuma separação encontrada.</Alert>
                   </TableCell>
                 </TableRow>
               ) : (
                 separacoesFiltradas.map((item) => (
-                  <TableRow key={item.chave} sx={{ "&:nth-of-type(even)": { backgroundColor: alpha("#f3f4f6", 0.3) } }}>
-                    <TableCell>{item.codloja}</TableCell>
+                  <React.Fragment key={item.chave}>
+                    <TableRow sx={{ "&:nth-of-type(even)": { backgroundColor: alpha("#f3f4f6", 0.3) } }}>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            void toggleDetalhes(item.chave)
+                          }}
+                          sx={{ transform: detalhesExpandidos[item.chave] ? "rotate(180deg)" : "rotate(0deg)" }}
+                        >
+                          <ExpandMore />
+                        </IconButton>
+                      </TableCell>
+                      <TableCell>{item.codloja}</TableCell>
                     <TableCell>{item.np}</TableCell>
                     <TableCell>{item.cliente || "-"}</TableCell>
                     <TableCell>{item.separador || "-"}</TableCell>
@@ -220,75 +263,105 @@ const PainelSeparacao: React.FC = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell align="center">
-                      <Box display="flex" gap={1} justifyContent="center">
+                      <TableCell align="center">
                         {item.status === "P" && (
                           <Button size="small" variant="contained" onClick={() => iniciarSeparacao(item)}>
                             Iniciar
                           </Button>
                         )}
-                        <Button
-                          size="small"
-                          variant={item.status === "F" ? "outlined" : "contained"}
-                          color={item.status === "F" ? "success" : "primary"}
-                          onClick={async () => {
-                            setDetalheAberto(item)
-                            await buscarItens(item.chave)
-                          }}
-                        >
-                          Detalhes
-                        </Button>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
+                        {item.status === "F" && <Chip size="small" color="success" label="Finalizada" />}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={10} sx={{ p: 0, borderBottom: 0 }}>
+                        <Collapse in={Boolean(detalhesExpandidos[item.chave])} timeout="auto" unmountOnExit>
+                          <Box sx={{ p: 2, backgroundColor: "#f9fafb" }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                              Conferência por produto
+                            </Typography>
+                            {carregandoItens[item.chave] ? (
+                              <Box display="flex" justifyContent="center" py={2}>
+                                <CircularProgress size={22} />
+                              </Box>
+                            ) : (
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell sx={{ width: 50 }}></TableCell>
+                                    <TableCell>Produto</TableCell>
+                                    <TableCell align="right">Quantidade</TableCell>
+                                    <TableCell align="right">Separado</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {(itensPorChave[item.chave] || []).map((itemProduto) => {
+                                    const chaveProduto = `${item.chave}_${itemProduto.codproduto}`
+                                    const produtoExpandido = Boolean(produtosExpandidos[chaveProduto])
+                                    return (
+                                      <React.Fragment key={itemProduto.codproduto}>
+                                        <TableRow>
+                                          <TableCell>
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => toggleProduto(item.chave, itemProduto.codproduto)}
+                                              sx={{ transform: produtoExpandido ? "rotate(180deg)" : "rotate(0deg)" }}
+                                            >
+                                              <ExpandMore />
+                                            </IconButton>
+                                          </TableCell>
+                                          <TableCell>{itemProduto.produto}</TableCell>
+                                          <TableCell align="right">{itemProduto.qtde_total}</TableCell>
+                                          <TableCell align="right">{itemProduto.qtde_separada}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                          <TableCell colSpan={4} sx={{ p: 0, borderBottom: 0 }}>
+                                            <Collapse in={produtoExpandido} timeout="auto" unmountOnExit>
+                                              <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                                                <TextField
+                                                  size="small"
+                                                  type="number"
+                                                  defaultValue={itemProduto.qtde_separada}
+                                                  inputProps={{ min: 0, max: itemProduto.qtde_total, step: "0.01" }}
+                                                  onBlur={(e) => {
+                                                    void atualizarItem(
+                                                      item.chave,
+                                                      itemProduto.codproduto,
+                                                      Number(e.target.value || 0),
+                                                    )
+                                                  }}
+                                                />
+                                              </Box>
+                                            </Collapse>
+                                          </TableCell>
+                                        </TableRow>
+                                      </React.Fragment>
+                                    )
+                                  })}
+                                </TableBody>
+                              </Table>
+                            )}
+                            <Box mt={2} display="flex" justifyContent="flex-end">
+                              <Button
+                                variant="contained"
+                                color="success"
+                                disabled={item.status === "F" || !podeFinalizar(item)}
+                                onClick={() => {
+                                  void finalizarSeparacao(item)
+                                }}
+                              >
+                                Finalizar Separação
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  </React.Fragment>
                 ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        <Dialog open={Boolean(detalheAberto)} onClose={() => setDetalheAberto(null)} maxWidth="md" fullWidth>
-          <DialogTitle>Separação da loja/nota {detalheAberto ? `${detalheAberto.codloja}/${detalheAberto.np}` : ""}</DialogTitle>
-          <DialogContent>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Produto</TableCell>
-                  <TableCell align="right">Quantidade</TableCell>
-                  <TableCell align="right">Separado</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {itens.map((item) => (
-                  <TableRow key={item.codproduto}>
-                    <TableCell>{item.produto}</TableCell>
-                    <TableCell align="right">{item.qtde_total}</TableCell>
-                    <TableCell align="right" sx={{ width: 180 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        defaultValue={item.qtde_separada}
-                        inputProps={{ min: 0, max: item.qtde_total, step: "0.01" }}
-                        onBlur={(e) => {
-                          void atualizarItem(item.codproduto, Number(e.target.value || 0))
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDetalheAberto(null)}>Fechar</Button>
-            {detalheAberto?.status !== "F" && (
-              <Button variant="contained" color="success" onClick={finalizarSeparacao}>
-                Finalizar Separação
-              </Button>
-            )}
-          </DialogActions>
-        </Dialog>
       </Container>
     </Layout>
   )
