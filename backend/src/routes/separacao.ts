@@ -180,6 +180,18 @@ router.post("/finalizar", async (req, res) => {
   }
 
   try {
+    const pendencias = await productPool.query(
+      `SELECT COUNT(*)::int AS total_pendentes
+       FROM wms_separacao_itens
+       WHERE (chave::text = $1::text OR (codloja = $2 AND np::text = $3::text))
+         AND COALESCE(qtde_separada, 0) < COALESCE(qtde_total, 0)`,
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
+    )
+
+    if ((pendencias.rows[0]?.total_pendentes ?? 0) > 0) {
+      return res.status(409).json({ erro: "Ainda existem produtos pendentes de separação" })
+    }
+
     const result = await productPool.query(
       `UPDATE wms_separacoes
        SET status = 'F',
