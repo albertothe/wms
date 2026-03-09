@@ -156,7 +156,7 @@ const PainelSeparacao: React.FC = () => {
           <TextField
             fullWidth
             size="small"
-            label="Buscar por venda, cliente ou separador"
+            label="Buscar por loja, nota, cliente ou separador"
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
           />
@@ -166,7 +166,8 @@ const PainelSeparacao: React.FC = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
-                <TableCell sx={{ fontWeight: 600 }}>Venda</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Loja</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Nota</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Separador</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Início</TableCell>
@@ -181,20 +182,21 @@ const PainelSeparacao: React.FC = () => {
             <TableBody>
               {carregando ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : separacoesFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     <Alert severity="info">Nenhuma separação encontrada.</Alert>
                   </TableCell>
                 </TableRow>
               ) : (
-                separacoesFiltradas.map((item, idx) => (
+                separacoesFiltradas.map((item) => (
                   <TableRow key={item.chave} sx={{ "&:nth-of-type(even)": { backgroundColor: alpha("#f3f4f6", 0.3) } }}>
-                    <TableCell>{item.codloja} / {item.np}</TableCell>
+                    <TableCell>{item.codloja}</TableCell>
+                    <TableCell>{item.np}</TableCell>
                     <TableCell>{item.cliente || "-"}</TableCell>
                     <TableCell>{item.separador || "-"}</TableCell>
                     <TableCell>{item.data_inicio ? new Date(item.data_inicio).toLocaleString("pt-BR") : "-"}</TableCell>
@@ -246,7 +248,7 @@ const PainelSeparacao: React.FC = () => {
         </TableContainer>
 
         <Dialog open={Boolean(detalheAberto)} onClose={() => setDetalheAberto(null)} maxWidth="md" fullWidth>
-          <DialogTitle>Separação da venda {detalheAberto ? `${detalheAberto.codloja}/${detalheAberto.np}` : ""}</DialogTitle>
+          <DialogTitle>Separação da loja/nota {detalheAberto ? `${detalheAberto.codloja}/${detalheAberto.np}` : ""}</DialogTitle>
           <DialogContent>
             <Table size="small">
               <TableHead>

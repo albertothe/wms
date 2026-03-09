@@ -224,18 +224,25 @@ const PainelSaida: React.FC = () => {
   const atribuirSeparacao = async () => {
     if (!modalAtribuir || !usuarioSelecionado) return
 
+    const dadosSeparacao = modalAtribuir
+    const usuario = usuarioSelecionado
+    setModalAtribuir(null)
+    setUsuarioSelecionado("")
+
     try {
       await api.post("/separacao/atribuir", {
-        chave: modalAtribuir.chave,
-        codloja: modalAtribuir.codloja,
-        np: modalAtribuir.np,
-        usuario: usuarioSelecionado,
+        chave: dadosSeparacao.chave,
+        codloja: dadosSeparacao.codloja,
+        np: dadosSeparacao.np,
+        usuario,
       })
+
+      await api.post("/separacao/iniciar", { chave: dadosSeparacao.chave })
 
       setPreNotas((prev) =>
         prev.map((item) =>
-          item.chave === modalAtribuir.chave
-            ? { ...item, separacao_status: "P", separador: usuarioSelecionado }
+          item.chave === dadosSeparacao.chave
+            ? { ...item, separacao_status: "S", separador: usuario }
             : item,
         ),
       )
@@ -251,9 +258,6 @@ const PainelSaida: React.FC = () => {
         mensagem: error?.response?.data?.erro || "Erro ao atribuir separação",
         tipo: "error",
       })
-    } finally {
-      setModalAtribuir(null)
-      setUsuarioSelecionado("")
     }
   }
 
