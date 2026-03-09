@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS wms_separacoes (
     chave VARCHAR(10) NOT NULL,
     codloja INTEGER NOT NULL,
     np VARCHAR(20) NOT NULL,
+    destinario VARCHAR(100) NOT NULL,
+    tipoentrega VARCHAR(15) NOT NULL,
     usuario_atribuido VARCHAR(50),
     data_atribuicao TIMESTAMP,
     data_inicio TIMESTAMP,
