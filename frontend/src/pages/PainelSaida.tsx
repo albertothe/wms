@@ -62,6 +62,8 @@ interface PreNotaCapa {
   coddestinario: string
   destinario: string
   chave: string
+  separacao_status?: "P" | "S" | "F" | null
+  separador?: string | null
   lote?: string // Campo para o lote escolhido na venda
 }
 
@@ -190,6 +192,9 @@ const PainelSaida: React.FC = () => {
     mensagem: "",
     tipo: "info" as "error" | "info" | "success" | "warning",
   })
+  const [usuariosSeparacao, setUsuariosSeparacao] = useState<string[]>([])
+  const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; codloja: string; np: string } | null>(null)
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState("")
 
   const { empresa } = useAuth()
   const nomeEmpresa = empresa?.nome || "Sistema WMS"
@@ -204,6 +209,42 @@ const PainelSaida: React.FC = () => {
     } catch (err) {
       console.error("Erro ao buscar endereços marcados:", err)
       return []
+    }
+  }
+
+  const carregarUsuariosSeparacao = useCallback(async () => {
+    try {
+      const response = await api.get("/separacao/usuarios")
+      setUsuariosSeparacao(response.data || [])
+    } catch (error) {
+      console.error("Erro ao carregar usuários para separação:", error)
+    }
+  }, [])
+
+  const atribuirSeparacao = async () => {
+    if (!modalAtribuir || !usuarioSelecionado) return
+
+    try {
+      await api.post("/separacao/atribuir", {
+        codloja: modalAtribuir.codloja,
+        np: modalAtribuir.np,
+        usuario: usuarioSelecionado,
+      })
+
+      setSnackbar({
+        aberta: true,
+        mensagem: "Separação atribuída com sucesso",
+        tipo: "success",
+      })
+      setModalAtribuir(null)
+      setUsuarioSelecionado("")
+      await carregarPreNotas(false)
+    } catch (error: any) {
+      setSnackbar({
+        aberta: true,
+        mensagem: error?.response?.data?.erro || "Erro ao atribuir separação",
+        tipo: "error",
+      })
     }
   }
 
@@ -568,7 +609,8 @@ const PainelSaida: React.FC = () => {
   // Effect para carregar dados iniciais
   useEffect(() => {
     carregarPreNotas(true)
-  }, [carregarPreNotas])
+    carregarUsuariosSeparacao()
+  }, [carregarPreNotas, carregarUsuariosSeparacao])
 
   // Effect para auto-refresh a cada 5 minutos
   useEffect(() => {
@@ -1031,9 +1073,33 @@ const PainelSaida: React.FC = () => {
                       <TableCell sx={{ p: 1.5 }}>{pn.separacao}</TableCell>
                       <TableCell sx={{ p: 1.5 }}>{pn.destinario}</TableCell>
                       <TableCell align="center" sx={{ p: 1.5 }}>
-                        <Box display="flex" gap={1} justifyContent="center">
+                        <Box display="flex" gap={1} justifyContent="center" alignItems="center" flexWrap="wrap">
                           <ImprimirPreNota chave={pn.chave} />
                           <ImprimirEtiquetas chave={pn.chave} />
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={Boolean(pn.separacao_status)}
+                            onClick={() => {
+                              setModalAtribuir({ aberto: true, codloja: pn.codloja, np: pn.np })
+                              setUsuarioSelecionado("")
+                            }}
+                          >
+                            Atribuir Separação
+                          </Button>
+                          {pn.separacao_status && (
+                            <Chip
+                              size="small"
+                              color={pn.separacao_status === "F" ? "success" : "warning"}
+                              label={
+                                pn.separacao_status === "P"
+                                  ? "Separação atribuída"
+                                  : pn.separacao_status === "S"
+                                    ? "Em separação"
+                                    : "Separação finalizada"
+                              }
+                            />
+                          )}
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1679,6 +1745,33 @@ const PainelSaida: React.FC = () => {
               }}
               color="primary"
             >
+              Confirmar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+
+        <Dialog open={Boolean(modalAtribuir?.aberto)} onClose={() => setModalAtribuir(null)} maxWidth="xs" fullWidth>
+          <DialogTitle>Atribuir Separação</DialogTitle>
+          <DialogContent>
+            <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+              <InputLabel>Usuário</InputLabel>
+              <Select
+                value={usuarioSelecionado}
+                label="Usuário"
+                onChange={(e) => setUsuarioSelecionado(e.target.value)}
+              >
+                {usuariosSeparacao.map((usuario) => (
+                  <MenuItem key={usuario} value={usuario}>
+                    {usuario}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setModalAtribuir(null)}>Cancelar</Button>
+            <Button variant="contained" onClick={atribuirSeparacao} disabled={!usuarioSelecionado}>
               Confirmar
             </Button>
           </DialogActions>
