@@ -4,6 +4,22 @@ import { logger } from "../utils/logger"
 
 const router = express.Router()
 
+const normalizarTextoOpcional = (valor: unknown): string | null => {
+  if (typeof valor !== "string") {
+    return valor == null ? null : String(valor)
+  }
+
+  const texto = valor.trim()
+  return texto.length > 0 ? texto : null
+}
+
+const normalizarInteiroOpcional = (valor: unknown): number | null => {
+  if (valor == null || valor === "") return null
+
+  const numero = Number(valor)
+  return Number.isInteger(numero) ? numero : null
+}
+
 router.get("/usuarios", async (_req, res) => {
   try {
     const result = await productPool.query(
@@ -86,8 +102,11 @@ router.post("/atribuir", async (req, res) => {
 
 router.post("/iniciar", async (req, res) => {
   const { chave, codloja, np } = req.body
+  const chaveNormalizada = normalizarTextoOpcional(chave)
+  const codlojaNormalizada = normalizarInteiroOpcional(codloja)
+  const npNormalizado = normalizarTextoOpcional(np)
 
-  if (!chave && (!codloja || !np)) {
+  if (!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) {
     return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
   }
 
@@ -96,10 +115,10 @@ router.post("/iniciar", async (req, res) => {
       `UPDATE wms_separacoes
        SET status = 'S',
            data_inicio = COALESCE(data_inicio, NOW())
-       WHERE (chave = $1 OR (codloja = $2 AND np = $3))
+      WHERE (chave = $1 OR (codloja = $2 AND np = $3))
          AND status <> 'F'
        RETURNING *`,
-      [chave ?? null, codloja ?? null, np ?? null],
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
     )
 
     if (result.rows.length === 0) {
@@ -115,8 +134,11 @@ router.post("/iniciar", async (req, res) => {
 
 router.post("/item", async (req, res) => {
   const { chave, codloja, np, codproduto, qtde_separada } = req.body
+  const chaveNormalizada = normalizarTextoOpcional(chave)
+  const codlojaNormalizada = normalizarInteiroOpcional(codloja)
+  const npNormalizado = normalizarTextoOpcional(np)
 
-  if ((!chave && (!codloja || !np)) || !codproduto || qtde_separada === undefined) {
+  if ((!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) || !codproduto || qtde_separada === undefined) {
     return res.status(400).json({ erro: "chave ou codloja/np, codproduto e qtde_separada são obrigatórios" })
   }
 
@@ -127,7 +149,7 @@ router.post("/item", async (req, res) => {
        WHERE codproduto = $3
          AND (chave = $1 OR (codloja = $2 AND np = $5))
        RETURNING *`,
-      [chave ?? null, codloja ?? null, codproduto, qtde_separada, np ?? null],
+      [chaveNormalizada, codlojaNormalizada, codproduto, qtde_separada, npNormalizado],
     )
 
     if (result.rows.length === 0) {
@@ -143,8 +165,11 @@ router.post("/item", async (req, res) => {
 
 router.post("/finalizar", async (req, res) => {
   const { chave, codloja, np } = req.body
+  const chaveNormalizada = normalizarTextoOpcional(chave)
+  const codlojaNormalizada = normalizarInteiroOpcional(codloja)
+  const npNormalizado = normalizarTextoOpcional(np)
 
-  if (!chave && (!codloja || !np)) {
+  if (!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) {
     return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
   }
 
@@ -155,7 +180,7 @@ router.post("/finalizar", async (req, res) => {
            data_fim = NOW()
        WHERE chave = $1 OR (codloja = $2 AND np = $3)
        RETURNING *`,
-      [chave ?? null, codloja ?? null, np ?? null],
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
     )
 
     if (result.rows.length === 0) {
@@ -171,8 +196,11 @@ router.post("/finalizar", async (req, res) => {
 
 router.get("/itens", async (req, res) => {
   const { chave, codloja, np } = req.query
+  const chaveNormalizada = normalizarTextoOpcional(chave)
+  const codlojaNormalizada = normalizarInteiroOpcional(codloja)
+  const npNormalizado = normalizarTextoOpcional(np)
 
-  if (!chave && (!codloja || !np)) {
+  if (!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) {
     return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
   }
 
@@ -182,7 +210,7 @@ router.get("/itens", async (req, res) => {
        FROM wms_separacao_itens
        WHERE chave = $1 OR (codloja = $2 AND np = $3)
        ORDER BY produto`,
-      [chave ?? null, codloja ?? null, np ?? null],
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
     )
 
     res.json(result.rows)
