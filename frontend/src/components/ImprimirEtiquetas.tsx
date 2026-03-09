@@ -225,14 +225,9 @@ const ImprimirEtiquetas: React.FC<{ chave: string }> = ({ chave }) => {
         carregarDadosEtiquetas()
     }, [chave, carregarDadosEtiquetas])
 
-    useEffect(() => {
-        // Carregar impressoras após carregar configurações
-        const timer = setTimeout(() => {
-            carregarImpressorasZebra()
-        }, 1000)
-
-        return () => clearTimeout(timer)
-    }, [])
+    // Busca automática de impressoras Zebra desativada para evitar consultas
+    // contínuas no Painel de Saída (múltiplas instâncias do componente na tabela).
+    // A atualização continua disponível ao abrir configurações e no botão de recarregar.
 
     const buscarConfiguracoes = async () => {
         try {
