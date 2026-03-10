@@ -7,7 +7,7 @@ const router = express.Router()
 router.get("/", async (_req, res) => {
   try {
     const result = await productPool.query(
-      `WITH separacoes_filtradas AS (
+       `WITH separacoes_filtradas AS (
          SELECT
            s.chave,
            s.codloja,
@@ -20,6 +20,7 @@ router.get("/", async (_req, res) => {
            s.status,
            s.data_atribuicao
          FROM wms_separacoes s
+         WHERE s.data_atribuicao::date = CURRENT_DATE
        ),
        itens_por_chave AS (
          SELECT
@@ -29,6 +30,11 @@ router.get("/", async (_req, res) => {
          FROM wms_separacao_itens i
          INNER JOIN separacoes_filtradas s ON s.chave = i.chave
          GROUP BY i.chave
+       ),
+       painel_saida_por_chave AS (
+         SELECT DISTINCT ps.chave
+         FROM vs_wms_fpainel_saida ps
+         INNER JOIN separacoes_filtradas s ON s.chave::text = ps.chave::text
        )
        SELECT
          s.chave,
@@ -40,6 +46,7 @@ router.get("/", async (_req, res) => {
          s.data_inicio,
          s.data_fim,
          s.status,
+         (ps.chave IS NOT NULL) AS no_painel_saida,
          COALESCE(i.total_separado, 0) AS total_separado,
          COALESCE(i.total_itens, 0) AS total_itens,
          CASE
@@ -48,6 +55,7 @@ router.get("/", async (_req, res) => {
          END AS progresso
        FROM separacoes_filtradas s
        LEFT JOIN itens_por_chave i ON i.chave = s.chave
+       LEFT JOIN painel_saida_por_chave ps ON ps.chave::text = s.chave::text
        ORDER BY COALESCE(s.data_inicio, s.data_atribuicao) DESC
        LIMIT 12`,
     )
