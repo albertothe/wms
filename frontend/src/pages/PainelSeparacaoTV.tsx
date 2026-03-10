@@ -52,6 +52,14 @@ const PainelSeparacaoTV: React.FC = () => {
   const [dados, setDados] = useState<SeparacaoTV[]>([])
   const [agora, setAgora] = useState(() => new Date())
 
+  const calcularTempoMs = useCallback((item: SeparacaoTV) => {
+    if (!item.data_inicio) return Number.POSITIVE_INFINITY
+
+    const inicio = new Date(item.data_inicio).getTime()
+    const fim = item.data_fim ? new Date(item.data_fim).getTime() : agora.getTime()
+    return Math.max(0, fim - inicio)
+  }, [agora])
+
   const carregarDados = useCallback(async () => {
     const response = await api.get("/painel-separacao/public")
     setDados(response.data)
@@ -77,6 +85,29 @@ const PainelSeparacaoTV: React.FC = () => {
   const horaAtual = useMemo(() => {
     return agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
   }, [agora])
+
+  const dadosOrdenados = useMemo(() => {
+    const classificar = (item: SeparacaoTV) => {
+      const progresso = Math.max(0, Math.min(100, Number(item.progresso ?? 0)))
+      if (progresso < 100) return 0
+      if (item.no_painel_saida) return 1
+      return 2
+    }
+
+    return [...dados].sort((a, b) => {
+      const grupoA = classificar(a)
+      const grupoB = classificar(b)
+
+      if (grupoA !== grupoB) return grupoA - grupoB
+
+      const tempoA = calcularTempoMs(a)
+      const tempoB = calcularTempoMs(b)
+
+      if (tempoA !== tempoB) return tempoA - tempoB
+
+      return (a.np || a.chave).localeCompare(b.np || b.chave, "pt-BR")
+    })
+  }, [calcularTempoMs, dados])
 
   return (
     <Box
@@ -132,7 +163,7 @@ const PainelSeparacaoTV: React.FC = () => {
             <Box sx={{ textAlign: "right" }}>%</Box>
           </Box>
 
-          {dados.map((item, index) => {
+          {dadosOrdenados.map((item, index) => {
             const progresso = Math.max(0, Math.min(100, Number(item.progresso ?? 0)))
             const progressoCompleto = progresso >= 100
             const concluido = item.status === "F" || progressoCompleto
