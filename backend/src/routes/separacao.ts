@@ -43,15 +43,17 @@ router.post("/atribuir", async (req, res) => {
     return res.status(400).json({ erro: "chave, codloja, np e usuario são obrigatórios" })
   }
 
-  try {
-    await productPool.query("BEGIN")
+  const dbClient = await productPool.connect()
 
-    const dadosVenda = await productPool.query(
+  try {
+    await dbClient.query("BEGIN")
+
+    const dadosVenda = await dbClient.query(
       `SELECT
          MAX(destinario)::varchar(100) AS destinario,
          MAX(tipoentrega)::varchar(15) AS tipoentrega
        FROM vs_wms_fpainel_saida
-       WHERE chave::text = $1::text`,
+       WHERE chave = $1::varchar(10)`,
       [chave],
     )
 
@@ -59,31 +61,25 @@ router.post("/atribuir", async (req, res) => {
     const tipoEntregaNormalizado = normalizarTextoOpcional(tipoentrega ?? dadosVenda.rows[0]?.tipoentrega)
 
     if (!destinarioNormalizado || !tipoEntregaNormalizado) {
-      await productPool.query("ROLLBACK")
+      await dbClient.query("ROLLBACK")
       return res.status(400).json({ erro: "destinario e tipoentrega são obrigatórios" })
     }
 
-    const existente = await productPool.query(
-      `SELECT id FROM wms_separacoes
-       WHERE chave = $1::varchar(10)
-       LIMIT 1`,
-      [chave],
-    )
-
-    if (existente.rows.length > 0) {
-      await productPool.query("ROLLBACK")
-      return res.status(409).json({ erro: "Separação já atribuída para esta venda" })
-    }
-
-    const separacao = await productPool.query(
+    const separacao = await dbClient.query(
       `INSERT INTO wms_separacoes
          (chave, codloja, np, destinario, tipoentrega, usuario_atribuido, data_atribuicao, data_inicio, status)
        VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(100), $5::varchar(15), $6::varchar(50), NOW(), NOW(), 'S'::char(1))
+       ON CONFLICT (chave) DO NOTHING
        RETURNING *`,
       [chave, codloja, np, destinarioNormalizado, tipoEntregaNormalizado, usuario],
     )
 
-    const itensInseridos = await productPool.query(
+    if (separacao.rows.length === 0) {
+      await dbClient.query("ROLLBACK")
+      return res.status(409).json({ erro: "Separação já atribuída para esta venda" })
+    }
+
+    const itensInseridos = await dbClient.query(
       `INSERT INTO wms_separacao_itens (chave, codloja, np, codproduto, produto, qtde_total, qtde_separada)
        SELECT
          p.chave::varchar(10),
@@ -94,17 +90,17 @@ router.post("/atribuir", async (req, res) => {
          SUM(COALESCE(p.qtde_saida, 0))::numeric AS qtde_total,
          0::numeric AS qtde_separada
        FROM vs_wms_fpainel_saida p
-       WHERE p.chave::text = $1::text
+       WHERE p.chave = $1::varchar(10)
        GROUP BY p.chave, p.codloja, p.np, p.codproduto`,
       [chave],
     )
 
     if (itensInseridos.rowCount === 0) {
-      await productPool.query("ROLLBACK")
+      await dbClient.query("ROLLBACK")
       return res.status(404).json({ erro: "Venda não encontrada para atribuição" })
     }
 
-    await productPool.query("COMMIT")
+    await dbClient.query("COMMIT")
 
     res.status(201).json({
       mensagem: "Separação atribuída com sucesso",
@@ -112,9 +108,11 @@ router.post("/atribuir", async (req, res) => {
       itens: itensInseridos.rowCount,
     })
   } catch (error) {
-    await productPool.query("ROLLBACK")
+    await dbClient.query("ROLLBACK")
     logger.error("Erro ao atribuir separação:", error)
     res.status(500).json({ erro: "Erro ao atribuir separação" })
+  } finally {
+    dbClient.release()
   }
 })
 
