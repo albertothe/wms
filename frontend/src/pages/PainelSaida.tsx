@@ -193,6 +193,7 @@ const PainelSaida: React.FC = () => {
     tipo: "info" as "error" | "info" | "success" | "warning",
   })
   const [usuariosSeparacao, setUsuariosSeparacao] = useState<string[]>([])
+  const [atribuicaoEmAndamento, setAtribuicaoEmAndamento] = useState(false)
   const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; chave: string; codloja: string; np: string; destinario: string; tipoentrega?: string } | null>(null)
   const [usuarioSelecionado, setUsuarioSelecionado] = useState("")
   const [atribuicoesPendentes, setAtribuicoesPendentes] = useState<Set<string>>(new Set())
@@ -227,18 +228,9 @@ const PainelSaida: React.FC = () => {
 
     const dadosSeparacao = modalAtribuir
     const usuario = usuarioSelecionado
+    setAtribuicaoEmAndamento(true)
 
     setAtribuicoesPendentes((prev) => new Set(prev).add(dadosSeparacao.chave))
-    setPreNotas((prev) =>
-      prev.map((item) =>
-        item.chave === dadosSeparacao.chave
-          ? { ...item, separacao_status: item.separacao_status || "S", separador: usuario }
-          : item,
-      ),
-    )
-
-    setModalAtribuir(null)
-    setUsuarioSelecionado("")
 
     try {
       await api.post("/separacao/atribuir", {
@@ -260,6 +252,8 @@ const PainelSaida: React.FC = () => {
         mensagem: "Separação atribuída com sucesso",
         tipo: "success",
       })
+      setModalAtribuir(null)
+      setUsuarioSelecionado("")
       void carregarPreNotas(false)
     } catch (error: any) {
       setAtribuicoesPendentes((prev) => {
@@ -274,6 +268,8 @@ const PainelSaida: React.FC = () => {
         mensagem: error?.response?.data?.erro || "Erro ao atribuir separação",
         tipo: "error",
       })
+    } finally {
+      setAtribuicaoEmAndamento(false)
     }
   }
 
@@ -1105,30 +1101,33 @@ const PainelSaida: React.FC = () => {
                         <Box display="flex" gap={1} justifyContent="center" alignItems="center" flexWrap="wrap">
                           <ImprimirPreNota chave={pn.chave} />
                           <ImprimirEtiquetas chave={pn.chave} />
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={Boolean(pn.separacao_status) || atribuicoesPendentes.has(pn.chave)}
-                            onClick={() => {
-                              setModalAtribuir({
-                                aberto: true,
-                                chave: pn.chave,
-                                codloja: pn.codloja,
-                                np: pn.np,
-                                destinario: pn.destinario,
-                                tipoentrega: pn.tipoentrega,
-                              })
-                              setUsuarioSelecionado("")
-                            }}
-                          >
-                            Atribuir Separação
-                          </Button>
-                          {pn.separacao_status && (
+                          {!pn.separacao_status && !atribuicoesPendentes.has(pn.chave) && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                setModalAtribuir({
+                                  aberto: true,
+                                  chave: pn.chave,
+                                  codloja: pn.codloja,
+                                  np: pn.np,
+                                  destinario: pn.destinario,
+                                  tipoentrega: pn.tipoentrega,
+                                })
+                                setUsuarioSelecionado("")
+                              }}
+                            >
+                              Atribuir Separação
+                            </Button>
+                          )}
+                          {(pn.separacao_status || atribuicoesPendentes.has(pn.chave)) && (
                             <Chip
                               size="small"
                               color={pn.separacao_status === "F" ? "success" : "warning"}
                               label={
-                                pn.separacao_status === "P"
+                                atribuicoesPendentes.has(pn.chave)
+                                  ? "Atribuindo..."
+                                  : pn.separacao_status === "P"
                                   ? "Separação atribuída"
                                   : pn.separacao_status === "S"
                                     ? "Em separação"
@@ -1787,7 +1786,14 @@ const PainelSaida: React.FC = () => {
         </Dialog>
 
 
-        <Dialog open={Boolean(modalAtribuir?.aberto)} onClose={() => setModalAtribuir(null)} maxWidth="xs" fullWidth>
+        <Dialog
+          open={Boolean(modalAtribuir?.aberto)}
+          onClose={() => {
+            if (!atribuicaoEmAndamento) setModalAtribuir(null)
+          }}
+          maxWidth="xs"
+          fullWidth
+        >
           <DialogTitle>Atribuir Separação</DialogTitle>
           <DialogContent>
             <FormControl fullWidth size="small" sx={{ mt: 1 }}>
@@ -1806,9 +1812,11 @@ const PainelSaida: React.FC = () => {
             </FormControl>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setModalAtribuir(null)}>Cancelar</Button>
-            <Button variant="contained" onClick={atribuirSeparacao} disabled={!usuarioSelecionado}>
-              Confirmar
+            <Button onClick={() => setModalAtribuir(null)} disabled={atribuicaoEmAndamento}>
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={atribuirSeparacao} disabled={!usuarioSelecionado || atribuicaoEmAndamento}>
+              {atribuicaoEmAndamento ? "Atribuindo..." : "Confirmar"}
             </Button>
           </DialogActions>
         </Dialog>

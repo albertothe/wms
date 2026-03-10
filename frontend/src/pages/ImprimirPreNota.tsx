@@ -3,7 +3,7 @@
 // frontend/src/pages/ImprimirPreNota.tsx
 
 import type React from "react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import html2canvas from "html2canvas"
 import { jsPDF } from "jspdf"
@@ -45,71 +45,53 @@ const ImprimirPreNota: React.FC<ImprimirPreNotaProps> = ({ chave }) => {
     severity: "success" as "success" | "error" | "info" | "warning",
   })
 
+  const configCacheRef = useRef<any>(null)
+
   const handleOpen = async () => {
+    setOpen(true)
     setLoading(true)
     setError(null)
 
     try {
-      console.log("Iniciando busca de dados para impressão...")
-      console.log("Chave:", chave)
+      const configPromise =
+        configCacheRef.current != null ? Promise.resolve(configCacheRef.current) : api.get("/configuracoes")
+      const notaPromise = api.get(`/painel-saida/${chave}/imprimir`)
 
-      // Buscar configurações da empresa primeiro
-      console.log("Buscando configurações da empresa...")
-      const resConfig = await api.get("/configuracoes")
-      console.log("Configurações recebidas:", resConfig.data)
+      const [configResponse, resNota] = await Promise.all([configPromise, notaPromise])
 
-      if (!resConfig.data) {
+      const configData = "data" in configResponse ? configResponse.data : configResponse
+      if (!configData) {
         throw new Error("Não foi possível obter as configurações da empresa")
       }
 
-      // Adaptar para a estrutura do seu banco
+      configCacheRef.current = configData
       setConfig({
-        usaQuatroNiveis: resConfig.data.usa_4_niveis || false,
-        corPrimaria: resConfig.data.cor_topo || "#0a0a6b",
-        modeloImpressao: resConfig.data.modelo_impressao_prenota || 1,
+        usaQuatroNiveis: configData.usa_4_niveis || false,
+        corPrimaria: configData.cor_topo || "#0a0a6b",
+        modeloImpressao: configData.modelo_impressao_prenota || 1,
         empresa: {
-          nome: resConfig.data.nome_empresa || "Empresa",
-          endereco: resConfig.data.endereco_empresa || "",
-          telefone: resConfig.data.telefone_empresa || "",
-          cnpj: resConfig.data.cnpj_empresa || "",
+          nome: configData.nome_empresa || "Empresa",
+          endereco: configData.endereco_empresa || "",
+          telefone: configData.telefone_empresa || "",
+          cnpj: configData.cnpj_empresa || "",
         },
       })
-
-      // Buscar dados da pré-nota
-      console.log("Buscando dados da pré-nota...")
-      const url = `/painel-saida/${chave}/imprimir`
-      console.log("URL da requisição:", url)
-
-      const resNota = await api.get(url)
-      console.log("Dados da nota recebidos:", resNota.data)
 
       if (!resNota.data) {
         throw new Error("Não foi possível obter os dados da nota")
       }
 
       setNotaData(resNota.data)
-      setOpen(true)
     } catch (error: any) {
       console.error("Erro ao buscar dados para impressão:", error)
 
-      // Extrair mensagem de erro mais detalhada
       let errorMessage = "Erro ao preparar documento para impressão"
 
       if (error.response) {
-        // Erro de resposta da API
-        console.error("Detalhes do erro de resposta:", {
-          status: error.response.status,
-          data: error.response.data,
-        })
-
         errorMessage = `Erro ${error.response.status}: ${error.response.data?.message || errorMessage}`
       } else if (error.request) {
-        // Erro de requisição (sem resposta)
-        console.error("Erro de requisição (sem resposta):", error.request)
         errorMessage = "Erro de conexão com o servidor"
       } else {
-        // Erro de configuração da requisição
-        console.error("Erro de configuração da requisição:", error.message)
         errorMessage = error.message || errorMessage
       }
 
