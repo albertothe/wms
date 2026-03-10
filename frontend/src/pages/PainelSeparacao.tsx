@@ -81,7 +81,13 @@ const PainelSeparacao: React.FC = () => {
   const [detalhesExpandidos, setDetalhesExpandidos] = useState<Record<string, boolean>>({})
   const [itensPorChave, setItensPorChave] = useState<Record<string, ItemSeparacao[]>>({})
   const [carregandoItens, setCarregandoItens] = useState<Record<string, boolean>>({})
-  const [produtosExpandidos, setProdutosExpandidos] = useState<Record<string, boolean>>({})
+
+  const normalizarQuantidade = (valor: number, maximo: number) => {
+    if (!Number.isFinite(valor)) return 0
+    if (valor < 0) return 0
+    if (valor > maximo) return maximo
+    return Number(valor.toFixed(2))
+  }
 
   const buscarSeparacoes = useCallback(async () => {
     try {
@@ -162,6 +168,13 @@ const PainelSeparacao: React.FC = () => {
     }
   }
 
+  const atualizarItemLocal = (chave: string, codproduto: string, qtde: number) => {
+    setItensPorChave((prev) => ({
+      ...prev,
+      [chave]: (prev[chave] || []).map((item) => (item.codproduto === codproduto ? { ...item, qtde_separada: qtde } : item)),
+    }))
+  }
+
   const iniciarSeparacao = async (item: Separacao) => {
     await api.post("/separacao/iniciar", { chave: item.chave })
     await buscarSeparacoes()
@@ -175,15 +188,12 @@ const PainelSeparacao: React.FC = () => {
     }
   }
 
-  const toggleProduto = (chave: string, codproduto: string) => {
-    const chaveProduto = `${chave}_${codproduto}`
-    setProdutosExpandidos((prev) => ({ ...prev, [chaveProduto]: !prev[chaveProduto] }))
-  }
-
   const podeFinalizar = (separacao: Separacao) => {
     const itens = itensPorChave[separacao.chave] || []
     if (itens.length === 0) return false
-    const todosSeparados = itens.every((item) => Number(item.qtde_separada) >= Number(item.qtde_total))
+    const todosSeparados = itens.every(
+      (item) => normalizarQuantidade(Number(item.qtde_separada), Number(item.qtde_total)) === Number(item.qtde_total),
+    )
     return todosSeparados && Number(separacao.progresso || 0) >= 100
   }
 
@@ -364,56 +374,45 @@ const PainelSeparacao: React.FC = () => {
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
-                                    <TableCell sx={{ width: 50 }}></TableCell>
                                     <TableCell>Produto</TableCell>
                                     <TableCell align="right">Quantidade</TableCell>
                                     <TableCell align="right">Separado</TableCell>
+                                    <TableCell align="right">Digitar Separação</TableCell>
                                   </TableRow>
                                 </TableHead>
                                 <TableBody>
                                   {(itensPorChave[item.chave] || []).map((itemProduto) => {
-                                    const chaveProduto = `${item.chave}_${itemProduto.codproduto}`
-                                    const produtoExpandido = Boolean(produtosExpandidos[chaveProduto])
                                     return (
-                                      <React.Fragment key={itemProduto.codproduto}>
-                                        <TableRow>
-                                          <TableCell>
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => toggleProduto(item.chave, itemProduto.codproduto)}
-                                              sx={{ transform: produtoExpandido ? "rotate(180deg)" : "rotate(0deg)" }}
-                                            >
-                                              <ExpandMore />
-                                            </IconButton>
-                                          </TableCell>
-                                          <TableCell>{itemProduto.produto}</TableCell>
-                                          <TableCell align="right">{itemProduto.qtde_total}</TableCell>
-                                          <TableCell align="right">{itemProduto.qtde_separada}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                          <TableCell colSpan={4} sx={{ p: 0, borderBottom: 0 }}>
-                                            <Collapse in={produtoExpandido} timeout="auto" unmountOnExit>
-                                              <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                                                <TextField
-                                                  size="small"
-                                                  type="number"
-                                                  defaultValue={itemProduto.qtde_separada}
-                                                  disabled={item.status === "F"}
-                                                  inputProps={{ min: 0, max: itemProduto.qtde_total, step: "0.01" }}
-                                                  onBlur={(e) => {
-                                                    if (item.status === "F") return
-                                                    void atualizarItem(
-                                                      item.chave,
-                                                      itemProduto.codproduto,
-                                                      Number(e.target.value || 0),
-                                                    )
-                                                  }}
-                                                />
-                                              </Box>
-                                            </Collapse>
-                                          </TableCell>
-                                        </TableRow>
-                                      </React.Fragment>
+                                      <TableRow key={itemProduto.codproduto}>
+                                        <TableCell>{itemProduto.produto}</TableCell>
+                                        <TableCell align="right">{itemProduto.qtde_total}</TableCell>
+                                        <TableCell align="right">{itemProduto.qtde_separada}</TableCell>
+                                        <TableCell align="right">
+                                          <TextField
+                                            size="small"
+                                            type="number"
+                                            value={itemProduto.qtde_separada}
+                                            disabled={item.status === "F"}
+                                            inputProps={{ min: 0, max: itemProduto.qtde_total, step: "0.01" }}
+                                            onChange={(e) => {
+                                              const novoValor = Number(e.target.value || 0)
+                                              atualizarItemLocal(
+                                                item.chave,
+                                                itemProduto.codproduto,
+                                                normalizarQuantidade(novoValor, Number(itemProduto.qtde_total)),
+                                              )
+                                            }}
+                                            onBlur={() => {
+                                              if (item.status === "F") return
+                                              void atualizarItem(
+                                                item.chave,
+                                                itemProduto.codproduto,
+                                                normalizarQuantidade(Number(itemProduto.qtde_separada), Number(itemProduto.qtde_total)),
+                                              )
+                                            }}
+                                          />
+                                        </TableCell>
+                                      </TableRow>
                                     )
                                   })}
                                 </TableBody>
