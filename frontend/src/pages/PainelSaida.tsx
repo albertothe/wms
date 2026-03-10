@@ -252,7 +252,7 @@ const PainelSaida: React.FC = () => {
         mensagem: "Separação atribuída com sucesso",
         tipo: "success",
       })
-      await carregarPreNotas(false)
+      void carregarPreNotas(false)
     } catch (error: any) {
       setSnackbar({
         aberta: true,
