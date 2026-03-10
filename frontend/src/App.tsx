@@ -17,6 +17,7 @@ import PainelEntrada from "./pages/PainelEntrada"
 import PainelSaida from "./pages/PainelSaida"
 import PainelSeparacao from "./pages/PainelSeparacao"
 import ImprimirEtiquetasEnderecos from "./pages/ImprimirEtiquetasEnderecos"
+import PainelSeparacaoTV from "./pages/PainelSeparacaoTV"
 
 const theme = createTheme(
   {
@@ -62,6 +63,7 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/painel-separacao-tv" element={<PainelSeparacaoTV />} />
             <Route
               path="/dashboard"
               element={

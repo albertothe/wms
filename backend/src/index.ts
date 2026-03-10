@@ -12,6 +12,7 @@ import controleAcessoRoutes from "./routes/controleAcesso"
 import dashboardRoutes from "./routes/dashboard"
 import impressoraZebraRoutes from "./routes/impressoraZebra"
 import separacaoRoutes from "./routes/separacao"
+import painelSeparacaoPublicoRoutes from "./routes/painelSeparacaoPublico"
 import { logger } from "./utils/logger"
 
 const app = express()
@@ -43,6 +44,7 @@ app.get("/teste", (req, res) => {
 // Rotas públicas
 app.use("/login", authRoutes)
 app.use("/configuracoes/public", configuracoesRoutes)
+app.use("/painel-separacao/public", painelSeparacaoPublicoRoutes)
 
 // Middleware de autenticação para rotas protegidas
 app.use(verificarToken)
