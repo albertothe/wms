@@ -83,7 +83,7 @@ const PainelSeparacaoTV: React.FC = () => {
       sx={{
         minHeight: "100vh",
         background: "radial-gradient(circle at top, #3b2b7d 0%, #1e184f 55%, #110f34 100%)",
-        color: "#f7f7ff",
+        color: "#fff",
         p: { xs: 2, md: 5 },
         display: "flex",
       }}
@@ -101,13 +101,13 @@ const PainelSeparacaoTV: React.FC = () => {
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
           <Box>
             <Typography sx={{ fontSize: { xs: 28, md: 54 }, fontWeight: 800, lineHeight: 1.1 }}>Painel de Separação</Typography>
-            <Typography sx={{ opacity: 0.85, mt: 1, fontSize: { xs: 16, md: 32 } }}>
+            <Typography sx={{ color: "#fff", opacity: 0.85, mt: 1, fontSize: { xs: 16, md: 32 } }}>
               Acompanhe a separação dos pedidos em tempo real.
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <AccessTimeRoundedIcon sx={{ fontSize: { xs: 24, md: 48 } }} />
-            <Typography sx={{ fontSize: { xs: 26, md: 56 }, fontWeight: 700 }}>{horaAtual}</Typography>
+            <AccessTimeRoundedIcon sx={{ color: "#fff", fontSize: { xs: 24, md: 48 } }} />
+            <Typography sx={{ color: "#fff", fontSize: { xs: 26, md: 56 }, fontWeight: 700 }}>{horaAtual}</Typography>
           </Box>
         </Box>
 
@@ -120,6 +120,7 @@ const PainelSeparacaoTV: React.FC = () => {
               px: 3,
               py: 2,
               backgroundColor: "rgba(255,255,255,0.04)",
+              color: "#fff",
               fontSize: { xs: 16, md: 28 },
               fontWeight: 700,
             }}
@@ -133,7 +134,8 @@ const PainelSeparacaoTV: React.FC = () => {
 
           {dados.map((item, index) => {
             const progresso = Math.max(0, Math.min(100, Number(item.progresso ?? 0)))
-            const concluido = item.status === "F" || progresso >= 100
+            const progressoCompleto = progresso >= 100
+            const concluido = item.status === "F" || progressoCompleto
 
             return (
               <Box
@@ -150,13 +152,13 @@ const PainelSeparacaoTV: React.FC = () => {
                   fontSize: { xs: 16, md: 30 },
                 }}
               >
-                <Typography sx={{ fontWeight: 700 }}>{item.np || item.chave}</Typography>
+                <Typography sx={{ color: "#fff", fontWeight: 700 }}>{item.np || item.chave}</Typography>
                 <Typography sx={{ textTransform: "uppercase", color: "#fff" }}>{item.cliente || "Cliente não informado"}</Typography>
                 <Chip
-                  icon={concluido ? <CheckCircleRoundedIcon /> : undefined}
+                  icon={progressoCompleto ? <CheckCircleRoundedIcon /> : undefined}
                   color={corTempo(item.data_inicio, item.data_fim, item.status)}
                   label={
-                    concluido ? (item.no_painel_saida ? "Aguardando NF" : "NF emitida") : formatarTempo(item.data_inicio, item.data_fim)
+                    progressoCompleto ? (item.no_painel_saida ? "Aguardando NF" : "NF emitida") : formatarTempo(item.data_inicio, item.data_fim)
                   }
                   sx={{
                     fontSize: { xs: 13, md: 24 },
@@ -180,7 +182,7 @@ const PainelSeparacaoTV: React.FC = () => {
                     },
                   }}
                 />
-                <Typography sx={{ textAlign: "right", fontWeight: 800 }}>{Math.round(progresso)}%</Typography>
+                <Typography sx={{ color: "#fff", textAlign: "right", fontWeight: 800 }}>{Math.round(progresso)}%</Typography>
               </Box>
             )
           })}
@@ -193,6 +195,7 @@ const PainelSeparacaoTV: React.FC = () => {
             borderTop: "1px solid rgba(255,255,255,0.12)",
             pt: 2,
             fontSize: { xs: 18, md: 30 },
+            color: "#fff",
             opacity: 0.95,
           }}
         >
