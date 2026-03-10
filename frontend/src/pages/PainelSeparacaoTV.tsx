@@ -14,6 +14,7 @@ interface SeparacaoTV {
   data_fim: string | null
   status: "P" | "S" | "F"
   progresso: number
+  no_painel_saida?: boolean
 }
 
 const formatarTempo = (dataInicio: string | null, dataFim: string | null): string => {
@@ -24,7 +25,13 @@ const formatarTempo = (dataInicio: string | null, dataFim: string | null): strin
   const diff = Math.max(0, fim - inicio)
 
   const minutos = Math.floor(diff / 60000)
+  const horas = Math.floor(minutos / 60)
+  const minutosRestantes = minutos % 60
   const segundos = Math.floor((diff % 60000) / 1000)
+
+  if (horas > 0) {
+    return `${String(horas).padStart(2, "0")}h ${String(minutosRestantes).padStart(2, "0")}m ${String(segundos).padStart(2, "0")}s`
+  }
 
   return `${String(minutos).padStart(2, "0")}m ${String(segundos).padStart(2, "0")}s`
 }
@@ -144,15 +151,19 @@ const PainelSeparacaoTV: React.FC = () => {
                 }}
               >
                 <Typography sx={{ fontWeight: 700 }}>{item.np || item.chave}</Typography>
-                <Typography sx={{ textTransform: "uppercase" }}>{item.cliente || "Cliente não informado"}</Typography>
+                <Typography sx={{ textTransform: "uppercase", color: "#fff" }}>{item.cliente || "Cliente não informado"}</Typography>
                 <Chip
                   icon={concluido ? <CheckCircleRoundedIcon /> : undefined}
                   color={corTempo(item.data_inicio, item.data_fim, item.status)}
-                  label={concluido ? "Finalizada" : formatarTempo(item.data_inicio, item.data_fim)}
+                  label={
+                    concluido ? (item.no_painel_saida ? "Aguardando NF" : "NF emitida") : formatarTempo(item.data_inicio, item.data_fim)
+                  }
                   sx={{
                     fontSize: { xs: 13, md: 24 },
                     height: { xs: 28, md: 44 },
                     width: "fit-content",
+                    color: "#fff",
+                    ".MuiChip-label": { color: "#fff" },
                     ".MuiChip-icon": { fontSize: { xs: 16, md: 24 } },
                   }}
                 />
