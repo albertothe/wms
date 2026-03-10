@@ -57,8 +57,14 @@ const formatarTempo = (dataInicio: string | null, dataFim: string | null): strin
   const inicio = new Date(dataInicio).getTime()
   const fim = dataFim ? new Date(dataFim).getTime() : Date.now()
   const diff = Math.max(0, fim - inicio)
-  const minutos = Math.floor(diff / 60000)
+  const horas = Math.floor(diff / 3600000)
+  const minutos = Math.floor((diff % 3600000) / 60000)
   const segundos = Math.floor((diff % 60000) / 1000)
+
+  if (horas > 0) {
+    return `${horas}h ${String(minutos).padStart(2, "0")}m ${String(segundos).padStart(2, "0")}s`
+  }
+
   return `${minutos}m ${segundos}s`
 }
 
