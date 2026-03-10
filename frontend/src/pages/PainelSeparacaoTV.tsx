@@ -100,7 +100,7 @@ const PainelSeparacaoTV: React.FC = () => {
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
           <Box>
-            <Typography sx={{ fontSize: { xs: 28, md: 54 }, fontWeight: 800, lineHeight: 1.1 }}>Painel de Separação</Typography>
+            <Typography sx={{ fontSize: { xs: 28, md: 54 }, fontWeight: 800, lineHeight: 1.1, color: "#fff" }}>Painel de Separação</Typography>
             <Typography sx={{ color: "#fff", opacity: 0.85, mt: 1, fontSize: { xs: 16, md: 32 } }}>
               Acompanhe a separação dos pedidos em tempo real.
             </Typography>
