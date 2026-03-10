@@ -239,7 +239,6 @@ const PainelSaida: React.FC = () => {
         usuario,
       })
 
-      await api.post("/separacao/iniciar", { chave: dadosSeparacao.chave })
 
       setPreNotas((prev) =>
         prev.map((item) =>
