@@ -9,8 +9,11 @@ import {
   Collapse,
   CircularProgress,
   Container,
+  FormControl,
   IconButton,
+  InputLabel,
   LinearProgress,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -18,6 +21,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Select,
   TextField,
   Typography,
   alpha,
@@ -116,11 +120,19 @@ const PainelSeparacao: React.FC = () => {
     }
   }, [buscarSeparacoes])
 
+  const usuariosUnicos = useMemo(
+    () => Array.from(new Set(separacoes.map((item) => item.separador).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [separacoes],
+  )
+
+  const tiposEntregaUnicos = useMemo(
+    () => Array.from(new Set(separacoes.map((item) => item.tipoentrega).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [separacoes],
+  )
+
   const separacoesFiltradas = useMemo(() => {
     return separacoes.filter((item) => {
       const busca = filtro.toLowerCase()
-      const filtroUsuarioNormalizado = filtroUsuario.toLowerCase()
-      const filtroTipoEntregaNormalizado = filtroTipoEntrega.toLowerCase()
 
       const atendeBuscaGeral =
         item.np?.toLowerCase().includes(busca) ||
@@ -128,11 +140,9 @@ const PainelSeparacao: React.FC = () => {
         item.cliente?.toLowerCase().includes(busca) ||
         item.separador?.toLowerCase().includes(busca)
 
-      const atendeUsuario =
-        !filtroUsuarioNormalizado || (item.separador || "").toLowerCase().includes(filtroUsuarioNormalizado)
+      const atendeUsuario = !filtroUsuario || (item.separador || "") === filtroUsuario
 
-      const atendeTipoEntrega =
-        !filtroTipoEntregaNormalizado || (item.tipoentrega || "").toLowerCase().includes(filtroTipoEntregaNormalizado)
+      const atendeTipoEntrega = !filtroTipoEntrega || (item.tipoentrega || "") === filtroTipoEntrega
 
       return atendeBuscaGeral && atendeUsuario && atendeTipoEntrega
     })
@@ -229,18 +239,38 @@ const PainelSeparacao: React.FC = () => {
             sx={{ mb: 2 }}
           />
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            <TextField
-              size="small"
-              label="Filtrar por usuário"
-              value={filtroUsuario}
-              onChange={(e) => setFiltroUsuario(e.target.value)}
-            />
-            <TextField
-              size="small"
-              label="Filtrar por tipo de entrega"
-              value={filtroTipoEntrega}
-              onChange={(e) => setFiltroTipoEntrega(e.target.value)}
-            />
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel id="filtro-usuario-separacao-label">Filtrar por usuário</InputLabel>
+              <Select
+                labelId="filtro-usuario-separacao-label"
+                label="Filtrar por usuário"
+                value={filtroUsuario}
+                onChange={(e) => setFiltroUsuario(e.target.value)}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {usuariosUnicos.map((usuario) => (
+                  <MenuItem key={usuario} value={usuario}>
+                    {usuario}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel id="filtro-tipo-entrega-separacao-label">Filtrar por tipo de entrega</InputLabel>
+              <Select
+                labelId="filtro-tipo-entrega-separacao-label"
+                label="Filtrar por tipo de entrega"
+                value={filtroTipoEntrega}
+                onChange={(e) => setFiltroTipoEntrega(e.target.value)}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {tiposEntregaUnicos.map((tipoEntrega) => (
+                  <MenuItem key={tipoEntrega} value={tipoEntrega}>
+                    {tipoEntrega}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </Paper>
 

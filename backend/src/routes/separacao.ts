@@ -77,8 +77,8 @@ router.post("/atribuir", async (req, res) => {
 
     const separacao = await productPool.query(
       `INSERT INTO wms_separacoes
-         (chave, codloja, np, destinario, tipoentrega, usuario_atribuido, data_atribuicao, status)
-       VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(100), $5::varchar(15), $6::varchar(50), NOW(), 'P'::char(1))
+         (chave, codloja, np, destinario, tipoentrega, usuario_atribuido, data_atribuicao, data_inicio, status)
+       VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(100), $5::varchar(15), $6::varchar(50), NOW(), NOW(), 'S'::char(1))
        RETURNING *`,
       [chave, codloja, np, destinarioNormalizado, tipoEntregaNormalizado, usuario],
     )
