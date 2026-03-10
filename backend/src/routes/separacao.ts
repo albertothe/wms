@@ -284,6 +284,11 @@ router.get("/", async (req, res) => {
          s.data_inicio,
          s.data_fim,
          s.status,
+         EXISTS(
+           SELECT 1
+           FROM vs_wms_fpainel_saida ps
+           WHERE ps.chave::text = s.chave::text
+         ) AS no_painel_saida,
          COALESCE(SUM(i.qtde_separada), 0) AS total_separado,
          COALESCE(SUM(i.qtde_total), 0) AS total_itens,
          CASE

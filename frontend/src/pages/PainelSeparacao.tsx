@@ -42,6 +42,7 @@ interface Separacao {
   data_fim: string | null
   status: "P" | "S" | "F"
   progresso: number
+  no_painel_saida: boolean
 }
 
 interface ItemSeparacao {
@@ -204,7 +205,7 @@ const PainelSeparacao: React.FC = () => {
 
   const acaoDisponivel = (item: Separacao) => {
     if (item.status === "F") {
-      return <Chip size="small" color="success" label="Finalizada" />
+      return <Chip size="small" color="success" label={item.no_painel_saida ? "Aguardando NF" : "NF emitida"} />
     }
 
     if (item.status === "P") {
