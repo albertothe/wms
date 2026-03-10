@@ -65,19 +65,26 @@ router.post("/atribuir", async (req, res) => {
       return res.status(400).json({ erro: "destinario e tipoentrega são obrigatórios" })
     }
 
+    const separacaoExistente = await dbClient.query(
+      `SELECT 1
+       FROM wms_separacoes
+       WHERE chave::text = $1::text
+       LIMIT 1`,
+      [chave],
+    )
+
+    if (separacaoExistente.rows.length > 0) {
+      await dbClient.query("ROLLBACK")
+      return res.status(409).json({ erro: "Separação já atribuída para esta venda" })
+    }
+
     const separacao = await dbClient.query(
       `INSERT INTO wms_separacoes
          (chave, codloja, np, destinario, tipoentrega, usuario_atribuido, data_atribuicao, data_inicio, status)
        VALUES ($1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(100), $5::varchar(15), $6::varchar(50), NOW(), NOW(), 'S'::char(1))
-       ON CONFLICT (chave) DO NOTHING
        RETURNING *`,
       [chave, codloja, np, destinarioNormalizado, tipoEntregaNormalizado, usuario],
     )
-
-    if (separacao.rows.length === 0) {
-      await dbClient.query("ROLLBACK")
-      return res.status(409).json({ erro: "Separação já atribuída para esta venda" })
-    }
 
     const itensInseridos = await dbClient.query(
       `INSERT INTO wms_separacao_itens (chave, codloja, np, codproduto, produto, qtde_total, qtde_separada)
@@ -272,7 +279,37 @@ router.get("/", async (req, res) => {
 
   try {
     const result = await productPool.query(
-      `SELECT
+      `WITH separacoes_filtradas AS (
+         SELECT
+           s.chave,
+           s.codloja,
+           s.np,
+           s.destinario,
+           s.tipoentrega,
+           s.usuario_atribuido,
+           s.data_inicio,
+           s.data_fim,
+           s.status,
+           s.data_atribuicao
+         FROM wms_separacoes s
+         WHERE ($1::varchar(50) IS NULL OR s.usuario_atribuido::text = $1::text)
+           AND ($2::varchar(15) IS NULL OR s.tipoentrega::text = $2::text)
+       ),
+       itens_por_chave AS (
+         SELECT
+           i.chave,
+           COALESCE(SUM(i.qtde_separada), 0) AS total_separado,
+           COALESCE(SUM(i.qtde_total), 0) AS total_itens
+         FROM wms_separacao_itens i
+         INNER JOIN separacoes_filtradas s ON s.chave = i.chave
+         GROUP BY i.chave
+       ),
+       painel_saida_por_chave AS (
+         SELECT DISTINCT ps.chave
+         FROM vs_wms_fpainel_saida ps
+         INNER JOIN separacoes_filtradas s ON s.chave::text = ps.chave::text
+       )
+       SELECT
          s.chave,
          s.codloja,
          s.np,
@@ -282,32 +319,16 @@ router.get("/", async (req, res) => {
          s.data_inicio,
          s.data_fim,
          s.status,
-         EXISTS(
-           SELECT 1
-           FROM vs_wms_fpainel_saida ps
-           WHERE ps.chave::text = s.chave::text
-         ) AS no_painel_saida,
-         COALESCE(SUM(i.qtde_separada), 0) AS total_separado,
-         COALESCE(SUM(i.qtde_total), 0) AS total_itens,
+         (ps.chave IS NOT NULL) AS no_painel_saida,
+         COALESCE(i.total_separado, 0) AS total_separado,
+         COALESCE(i.total_itens, 0) AS total_itens,
          CASE
-           WHEN COALESCE(SUM(i.qtde_total), 0) = 0 THEN 0
-           ELSE ROUND((COALESCE(SUM(i.qtde_separada), 0) / NULLIF(SUM(i.qtde_total), 0)) * 100, 2)
+           WHEN COALESCE(i.total_itens, 0) = 0 THEN 0
+           ELSE ROUND((COALESCE(i.total_separado, 0) / NULLIF(i.total_itens, 0)) * 100, 2)
          END AS progresso
-       FROM wms_separacoes s
-       LEFT JOIN wms_separacao_itens i ON i.chave = s.chave
-       WHERE ($1::varchar(50) IS NULL OR s.usuario_atribuido::text = $1::text)
-         AND ($2::varchar(15) IS NULL OR s.tipoentrega::text = $2::text)
-       GROUP BY
-         s.chave,
-         s.codloja,
-         s.np,
-         s.destinario,
-         s.tipoentrega,
-         s.usuario_atribuido,
-         s.data_inicio,
-         s.data_fim,
-         s.status,
-         s.data_atribuicao
+       FROM separacoes_filtradas s
+       LEFT JOIN itens_por_chave i ON i.chave = s.chave
+       LEFT JOIN painel_saida_por_chave ps ON ps.chave::text = s.chave::text
        ORDER BY COALESCE(s.data_inicio, s.data_atribuicao) DESC`,
       [usuario, tipoentrega],
     )
