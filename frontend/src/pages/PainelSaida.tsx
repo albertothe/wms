@@ -195,6 +195,7 @@ const PainelSaida: React.FC = () => {
   const [usuariosSeparacao, setUsuariosSeparacao] = useState<string[]>([])
   const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; chave: string; codloja: string; np: string; destinario: string; tipoentrega?: string } | null>(null)
   const [usuarioSelecionado, setUsuarioSelecionado] = useState("")
+  const [atribuicoesPendentes, setAtribuicoesPendentes] = useState<Set<string>>(new Set())
 
   const { empresa } = useAuth()
   const nomeEmpresa = empresa?.nome || "Sistema WMS"
@@ -226,6 +227,16 @@ const PainelSaida: React.FC = () => {
 
     const dadosSeparacao = modalAtribuir
     const usuario = usuarioSelecionado
+
+    setAtribuicoesPendentes((prev) => new Set(prev).add(dadosSeparacao.chave))
+    setPreNotas((prev) =>
+      prev.map((item) =>
+        item.chave === dadosSeparacao.chave
+          ? { ...item, separacao_status: item.separacao_status || "S", separador: usuario }
+          : item,
+      ),
+    )
+
     setModalAtribuir(null)
     setUsuarioSelecionado("")
 
@@ -239,14 +250,11 @@ const PainelSaida: React.FC = () => {
         usuario,
       })
 
-
-      setPreNotas((prev) =>
-        prev.map((item) =>
-          item.chave === dadosSeparacao.chave
-            ? { ...item, separacao_status: "S", separador: usuario }
-            : item,
-        ),
-      )
+      setAtribuicoesPendentes((prev) => {
+        const atualizado = new Set(prev)
+        atualizado.delete(dadosSeparacao.chave)
+        return atualizado
+      })
       setSnackbar({
         aberta: true,
         mensagem: "Separação atribuída com sucesso",
@@ -254,6 +262,13 @@ const PainelSaida: React.FC = () => {
       })
       void carregarPreNotas(false)
     } catch (error: any) {
+      setAtribuicoesPendentes((prev) => {
+        const atualizado = new Set(prev)
+        atualizado.delete(dadosSeparacao.chave)
+        return atualizado
+      })
+
+      void carregarPreNotas(false)
       setSnackbar({
         aberta: true,
         mensagem: error?.response?.data?.erro || "Erro ao atribuir separação",
@@ -1093,7 +1108,7 @@ const PainelSaida: React.FC = () => {
                           <Button
                             size="small"
                             variant="outlined"
-                            disabled={Boolean(pn.separacao_status)}
+                            disabled={Boolean(pn.separacao_status) || atribuicoesPendentes.has(pn.chave)}
                             onClick={() => {
                               setModalAtribuir({
                                 aberto: true,
