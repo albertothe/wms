@@ -40,6 +40,7 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  Checkbox,
 } from "@mui/material"
 import {
   ExpandMore,
@@ -47,7 +48,10 @@ import {
   FilterList as FilterIcon,
   Clear as ClearIcon,
   Refresh as RefreshIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material"
+import { renderToStaticMarkup } from "react-dom/server"
+import ImpressaoPreNota from "../components/ImpressaoPreNota"
 
 interface PreNotaCapa {
   data: string
@@ -197,6 +201,8 @@ const PainelSaida: React.FC = () => {
   const [modalAtribuir, setModalAtribuir] = useState<{ aberto: boolean; chave: string; codloja: string; np: string; destinario: string; tipoentrega?: string } | null>(null)
   const [usuarioSelecionado, setUsuarioSelecionado] = useState("")
   const [atribuicoesPendentes, setAtribuicoesPendentes] = useState<Set<string>>(new Set())
+  const [selecionadasParaImpressao, setSelecionadasParaImpressao] = useState<Set<string>>(new Set())
+  const [imprimindoEmMassa, setImprimindoEmMassa] = useState(false)
 
   const { empresa } = useAuth()
   const nomeEmpresa = empresa?.nome || "Sistema WMS"
@@ -727,6 +733,104 @@ const PainelSaida: React.FC = () => {
     setPagina(0)
   }
 
+  const toggleSelecaoImpressao = (chave: string) => {
+    setSelecionadasParaImpressao((prev) => {
+      const atualizado = new Set(prev)
+      if (atualizado.has(chave)) {
+        atualizado.delete(chave)
+      } else {
+        atualizado.add(chave)
+      }
+      return atualizado
+    })
+  }
+
+  const imprimirEmMassa = async () => {
+    if (selecionadasParaImpressao.size === 0) return
+
+    setImprimindoEmMassa(true)
+
+    try {
+      const configResponse = await api.get("/configuracoes")
+      const configData = configResponse.data
+      const config = {
+        usaQuatroNiveis: configData.usa_4_niveis || false,
+        corPrimaria: configData.cor_topo || "#0a0a6b",
+        modeloImpressao: configData.modelo_impressao_prenota || 1,
+        empresa: {
+          nome: configData.nome_empresa || "Empresa",
+          endereco: configData.endereco_empresa || "",
+          telefone: configData.telefone_empresa || "",
+          cnpj: configData.cnpj_empresa || "",
+        },
+      }
+
+      const chavesOrdenadas = preNotasFiltradas.filter((pn) => selecionadasParaImpressao.has(pn.chave)).map((pn) => pn.chave)
+
+      const notas = await Promise.all(chavesOrdenadas.map((chave) => api.get(`/painel-saida/${chave}/imprimir`)))
+
+      const htmlNotas = notas
+        .map((notaResponse, index) => {
+          const chave = chavesOrdenadas[index]
+          return `<div class="prenota-bloco">${renderToStaticMarkup(
+            <ImpressaoPreNota notaData={notaResponse.data} config={config} chave={chave} />,
+          )}</div>`
+        })
+        .join("\n")
+
+      const janelaImpressao = window.open("", "_blank", "width=900,height=700")
+      if (!janelaImpressao) {
+        setSnackbar({
+          aberta: true,
+          mensagem: "Navegador bloqueou a janela de impressão. Permita pop-ups.",
+          tipo: "error",
+        })
+        return
+      }
+
+      const estilosAtuais = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map((node) => node.outerHTML)
+        .join("\n")
+
+      janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Impressão em Massa de Pré-Notas</title>
+          ${estilosAtuais}
+          <style>
+            body { margin: 0; background: #fff; }
+            .prenota-bloco { page-break-after: always; break-after: page; }
+            .prenota-bloco:last-child { page-break-after: auto; break-after: auto; }
+            @media print {
+              @page { margin: 6mm; }
+            }
+          </style>
+        </head>
+        <body>
+          ${htmlNotas}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            };
+          </script>
+        </body>
+        </html>
+      `)
+      janelaImpressao.document.close()
+    } catch (error) {
+      console.error("Erro na impressão em massa:", error)
+      setSnackbar({
+        aberta: true,
+        mensagem: "Não foi possível preparar a impressão em massa.",
+        tipo: "error",
+      })
+    } finally {
+      setImprimindoEmMassa(false)
+    }
+  }
+
   if (carregando) {
     return (
       <Layout corTopo={corTopo} nomeEmpresa={nomeEmpresa}>
@@ -888,6 +992,27 @@ const PainelSaida: React.FC = () => {
               </FormControl>
 
               <Button
+                variant="contained"
+                startIcon={imprimindoEmMassa ? <CircularProgress size={16} color="inherit" /> : <PrintIcon />}
+                onClick={imprimirEmMassa}
+                disabled={selecionadasParaImpressao.size === 0 || imprimindoEmMassa}
+                sx={{
+                  height: "40px",
+                  textTransform: "none",
+                  bgcolor: corTopo,
+                  "&:hover": {
+                    bgcolor: alpha(corTopo, 0.9),
+                  },
+                  "&.Mui-disabled": {
+                    bgcolor: "rgba(0, 0, 0, 0.12)",
+                    color: "rgba(0, 0, 0, 0.26)",
+                  },
+                }}
+              >
+                {imprimindoEmMassa ? "Preparando..." : `Imprimir em Massa (${selecionadasParaImpressao.size})`}
+              </Button>
+
+              <Button
                 variant="outlined"
                 startIcon={<ClearIcon />}
                 onClick={limparFiltros}
@@ -1031,7 +1156,7 @@ const PainelSaida: React.FC = () => {
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
-                <TableCell sx={{ width: 50, p: 1.5 }}></TableCell>
+                <TableCell sx={{ width: 88, p: 1.5 }}></TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Data</TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Loja</TableCell>
                 <TableCell sx={{ p: 1.5, fontWeight: 600 }}>Tipo Entrega</TableCell>
@@ -1063,17 +1188,25 @@ const PainelSaida: React.FC = () => {
                       }}
                     >
                       <TableCell sx={{ p: 1.5 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => toggleExpandirPreNota(pn.chave)}
-                          sx={{
-                            color: corTopo,
-                            transition: "transform 0.2s",
-                            transform: expandido[pn.chave] ? "rotate(180deg)" : "rotate(0deg)",
-                          }}
-                        >
-                          <ExpandMore />
-                        </IconButton>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <Checkbox
+                            size="small"
+                            checked={selecionadasParaImpressao.has(pn.chave)}
+                            onChange={() => toggleSelecaoImpressao(pn.chave)}
+                            sx={{ p: 0.5, color: corTopo, "&.Mui-checked": { color: corTopo } }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => toggleExpandirPreNota(pn.chave)}
+                            sx={{
+                              color: corTopo,
+                              transition: "transform 0.2s",
+                              transform: expandido[pn.chave] ? "rotate(180deg)" : "rotate(0deg)",
+                            }}
+                          >
+                            <ExpandMore />
+                          </IconButton>
+                        </Box>
                       </TableCell>
                       <TableCell sx={{ p: 1.5 }}>{formatarData(pn.data)}</TableCell>
                       <TableCell sx={{ p: 1.5 }}>{pn.codloja}</TableCell>
