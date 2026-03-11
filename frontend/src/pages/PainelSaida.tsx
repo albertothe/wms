@@ -119,7 +119,7 @@ const formatarData = (data: string): string => {
   return data
 }
 
-const LIMITE_PRODUTOS_MEIA_PAGINA = 8
+const LIMITE_PRODUTOS_MEIA_PAGINA = 4
 
 const podeImprimirEmMeiaPagina = (notaData: any, modeloImpressao: number): boolean => {
   if (!notaData || modeloImpressao !== 2) return false
@@ -853,18 +853,31 @@ const PainelSaida: React.FC = () => {
           ${estilosAtuais}
           <style>
             body { margin: 0; background: #fff; }
-            .pagina-a4 { min-height: calc(297mm - 12mm); display: flex; flex-direction: column; }
-            .pagina-a4 { page-break-after: always; break-after: page; }
+            .pagina-a4 {
+              min-height: 279mm;
+              display: flex;
+              flex-direction: column;
+              box-sizing: border-box;
+              page-break-after: always;
+              break-after: page;
+            }
             .pagina-a4:last-child { page-break-after: auto; break-after: auto; }
-            .prenota-meia-pagina { flex: 1; min-height: calc((297mm - 12mm) / 2); }
+            .prenota-bloco { page-break-inside: avoid; break-inside: avoid; }
+            .prenota-meia-pagina {
+              flex: 1;
+              min-height: calc((279mm - 2mm) / 2);
+            }
             .prenota-meia-pagina .impressao-prenota { height: 100%; }
             .impressao-prenota .tabela-produtos .MuiTableRow-root > .MuiTableCell-root { border: 1px solid #cfcfcf !important; }
             .impressao-prenota .tabela-produtos .coluna-qtde { padding-right: 10px !important; min-width: 70px; }
             .impressao-prenota .tabela-produtos .coluna-valor { padding-right: 12px !important; min-width: 84px; }
             @media print {
-              @page { size: A4; margin: 6mm; }
-              .pagina-a4 { min-height: calc(297mm - 12mm); }
-              .prenota-meia-pagina { min-height: calc((297mm - 12mm) / 2); }
+              @page { size: A4; margin: 9mm 6mm; }
+              body { margin: 0; }
+              .pagina-a4 {
+                min-height: 279mm;
+              }
+              .prenota-meia-pagina { min-height: calc((279mm - 2mm) / 2); }
             }
           </style>
         </head>
