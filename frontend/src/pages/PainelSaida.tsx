@@ -119,15 +119,14 @@ const formatarData = (data: string): string => {
   return data
 }
 
-const LIMITE_PRODUTOS_MEIA_PAGINA = 4
+const LIMITE_PRODUTOS_MEIA_PAGINA = 3
 
-const podeImprimirEmMeiaPagina = (notaData: any, modeloImpressao: number): boolean => {
-  if (!notaData || modeloImpressao !== 2) return false
+const podeImprimirEmMeiaPagina = (notaData: any): boolean => {
+  if (!notaData) return false
 
   const quantidadeProdutos = Array.isArray(notaData.produtos) ? notaData.produtos.length : 0
-  const possuiObservacoesLongas = typeof notaData?.capa?.observacoes === "string" && notaData.capa.observacoes.length > 160
 
-  return quantidadeProdutos > 0 && quantidadeProdutos <= LIMITE_PRODUTOS_MEIA_PAGINA && !possuiObservacoesLongas
+  return quantidadeProdutos > 0 && quantidadeProdutos <= LIMITE_PRODUTOS_MEIA_PAGINA
 }
 
 const obterCorStatus = (status: string) => {
@@ -783,7 +782,7 @@ const PainelSaida: React.FC = () => {
       const blocos = notas.map((notaResponse, index) => {
         const chave = chavesOrdenadas[index]
         const notaData = notaResponse.data
-        const meiaPagina = podeImprimirEmMeiaPagina(notaData, config.modeloImpressao)
+        const meiaPagina = podeImprimirEmMeiaPagina(notaData)
 
         return {
           meiaPagina,
@@ -793,7 +792,7 @@ const PainelSaida: React.FC = () => {
               config={config}
               chave={chave}
               meiaPagina={meiaPagina}
-              ocultarAssinaturas={meiaPagina}
+              ocultarAssinaturas
             />,
           )}</div>`,
         }
@@ -854,30 +853,31 @@ const PainelSaida: React.FC = () => {
           <style>
             body { margin: 0; background: #fff; }
             .pagina-a4 {
-              min-height: 279mm;
+              height: 285mm;
               display: flex;
               flex-direction: column;
               box-sizing: border-box;
               page-break-after: always;
               break-after: page;
+              overflow: hidden;
             }
             .pagina-a4:last-child { page-break-after: auto; break-after: auto; }
             .prenota-bloco { page-break-inside: avoid; break-inside: avoid; }
             .prenota-meia-pagina {
               flex: 1;
-              min-height: calc((279mm - 2mm) / 2);
+              min-height: calc((285mm - 2mm) / 2);
             }
             .prenota-meia-pagina .impressao-prenota { height: 100%; }
             .impressao-prenota .tabela-produtos .MuiTableRow-root > .MuiTableCell-root { border: 1px solid #cfcfcf !important; }
             .impressao-prenota .tabela-produtos .coluna-qtde { padding-right: 10px !important; min-width: 70px; }
             .impressao-prenota .tabela-produtos .coluna-valor { padding-right: 12px !important; min-width: 84px; }
             @media print {
-              @page { size: A4; margin: 9mm 6mm; }
+              @page { size: A4; margin: 6mm 6mm; }
               body { margin: 0; }
               .pagina-a4 {
-                min-height: 279mm;
+                height: 285mm;
               }
-              .prenota-meia-pagina { min-height: calc((279mm - 2mm) / 2); }
+              .prenota-meia-pagina { min-height: calc((285mm - 2mm) / 2); }
             }
           </style>
         </head>
