@@ -61,6 +61,8 @@ interface ImpressaoPreNotaProps {
     notaData: NotaData
     config: ConfigData
     chave?: string
+    meiaPagina?: boolean
+    ocultarAssinaturas?: boolean
 }
 
 const formatarData = (dataString: string): string => {
@@ -85,7 +87,7 @@ const formatarValor = (valor: number): string => {
         .trim()
 }
 
-const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, chave }) => {
+const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, chave, meiaPagina = false, ocultarAssinaturas = false }) => {
     // Determinar o modelo de impressão (padrão é 1 se não especificado)
     const modeloImpressao = config.modeloImpressao || 1
     const isModeloSimplificado = modeloImpressao === 2
@@ -143,11 +145,11 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
     return (
         <Box
             sx={{
-                p: isModeloSimplificado ? 2 : 2.5,
+                p: meiaPagina ? 1.2 : isModeloSimplificado ? 2 : 2.5,
                 maxWidth: "210mm",
                 margin: "0 auto",
                 bgcolor: "white",
-                fontSize: isModeloSimplificado ? "0.8rem" : "0.84rem",
+                fontSize: meiaPagina ? "0.74rem" : isModeloSimplificado ? "0.8rem" : "0.84rem",
                 fontFamily: "Arial, sans-serif",
                 color: "#000",
             }}
@@ -155,10 +157,10 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
         >
             {/* Cabeçalho */}
             <Box sx={{ mb: 1.2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="h6" component="h1" sx={{ fontWeight: 700, fontSize: isModeloSimplificado ? "1.9rem" : undefined }}>
+                <Typography variant="h6" component="h1" sx={{ fontWeight: 700, fontSize: meiaPagina ? "1.25rem" : isModeloSimplificado ? "1.9rem" : undefined }}>
                     IMPRESSÃO DE PRÉ-NOTA
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: "0.88rem" }}>Gerado em: {dataAtual}</Typography>
+                <Typography variant="body2" sx={{ fontSize: meiaPagina ? "0.72rem" : "0.88rem" }}>Gerado em: {dataAtual}</Typography>
             </Box>
 
             {/* Informações da Nota */}
@@ -309,20 +311,22 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             )}
 
             {/* Assinaturas */}
-            <Box sx={{ mt: isModeloSimplificado ? 5 : 6, display: "flex", justifyContent: "space-around" }}>
-                <Box sx={{ textAlign: "center" }}>
-                    <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
-                    <Typography variant="body2">Separador</Typography>
+            {!ocultarAssinaturas && (
+                <Box sx={{ mt: isModeloSimplificado ? 5 : 6, display: "flex", justifyContent: "space-around" }}>
+                    <Box sx={{ textAlign: "center" }}>
+                        <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
+                        <Typography variant="body2">Separador</Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "center" }}>
+                        <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
+                        <Typography variant="body2">Conferente</Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "center" }}>
+                        <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
+                        <Typography variant="body2">Cliente</Typography>
+                    </Box>
                 </Box>
-                <Box sx={{ textAlign: "center" }}>
-                    <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
-                    <Typography variant="body2">Conferente</Typography>
-                </Box>
-                <Box sx={{ textAlign: "center" }}>
-                    <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
-                    <Typography variant="body2">Cliente</Typography>
-                </Box>
-            </Box>
+            )}
 
         </Box>
     )

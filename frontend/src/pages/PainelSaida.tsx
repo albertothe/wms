@@ -119,6 +119,17 @@ const formatarData = (data: string): string => {
   return data
 }
 
+const LIMITE_PRODUTOS_MEIA_PAGINA = 8
+
+const podeImprimirEmMeiaPagina = (notaData: any, modeloImpressao: number): boolean => {
+  if (!notaData || modeloImpressao !== 2) return false
+
+  const quantidadeProdutos = Array.isArray(notaData.produtos) ? notaData.produtos.length : 0
+  const possuiObservacoesLongas = typeof notaData?.capa?.observacoes === "string" && notaData.capa.observacoes.length > 160
+
+  return quantidadeProdutos > 0 && quantidadeProdutos <= LIMITE_PRODUTOS_MEIA_PAGINA && !possuiObservacoesLongas
+}
+
 const obterCorStatus = (status: string) => {
   switch (status) {
     case "CFC":
@@ -769,14 +780,56 @@ const PainelSaida: React.FC = () => {
 
       const notas = await Promise.all(chavesOrdenadas.map((chave) => api.get(`/painel-saida/${chave}/imprimir`)))
 
-      const htmlNotas = notas
-        .map((notaResponse, index) => {
-          const chave = chavesOrdenadas[index]
-          return `<div class="prenota-bloco">${renderToStaticMarkup(
-            <ImpressaoPreNota notaData={notaResponse.data} config={config} chave={chave} />,
-          )}</div>`
-        })
-        .join("\n")
+      const blocos = notas.map((notaResponse, index) => {
+        const chave = chavesOrdenadas[index]
+        const notaData = notaResponse.data
+        const meiaPagina = podeImprimirEmMeiaPagina(notaData, config.modeloImpressao)
+
+        return {
+          meiaPagina,
+          html: `<div class="prenota-bloco ${meiaPagina ? "prenota-meia-pagina" : "prenota-pagina-cheia"}">${renderToStaticMarkup(
+            <ImpressaoPreNota
+              notaData={notaData}
+              config={config}
+              chave={chave}
+              meiaPagina={meiaPagina}
+              ocultarAssinaturas={meiaPagina}
+            />,
+          )}</div>`,
+        }
+      })
+
+      const paginas: string[] = []
+      let paginaAtual: string[] = []
+      let meiaPaginaCount = 0
+
+      blocos.forEach((bloco) => {
+        if (!bloco.meiaPagina) {
+          if (paginaAtual.length > 0) {
+            paginas.push(`<div class="pagina-a4">${paginaAtual.join("\n")}</div>`)
+            paginaAtual = []
+            meiaPaginaCount = 0
+          }
+
+          paginas.push(`<div class="pagina-a4">${bloco.html}</div>`)
+          return
+        }
+
+        paginaAtual.push(bloco.html)
+        meiaPaginaCount += 1
+
+        if (meiaPaginaCount === 2) {
+          paginas.push(`<div class="pagina-a4">${paginaAtual.join("\n")}</div>`)
+          paginaAtual = []
+          meiaPaginaCount = 0
+        }
+      })
+
+      if (paginaAtual.length > 0) {
+        paginas.push(`<div class="pagina-a4">${paginaAtual.join("\n")}</div>`)
+      }
+
+      const htmlNotas = paginas.join("\n")
 
       const janelaImpressao = window.open("", "_blank", "width=900,height=700")
       if (!janelaImpressao) {
@@ -800,13 +853,18 @@ const PainelSaida: React.FC = () => {
           ${estilosAtuais}
           <style>
             body { margin: 0; background: #fff; }
-            .prenota-bloco { page-break-after: always; break-after: page; }
-            .prenota-bloco:last-child { page-break-after: auto; break-after: auto; }
+            .pagina-a4 { min-height: calc(297mm - 12mm); display: flex; flex-direction: column; }
+            .pagina-a4 { page-break-after: always; break-after: page; }
+            .pagina-a4:last-child { page-break-after: auto; break-after: auto; }
+            .prenota-meia-pagina { flex: 1; min-height: calc((297mm - 12mm) / 2); }
+            .prenota-meia-pagina .impressao-prenota { height: 100%; }
             .impressao-prenota .tabela-produtos .MuiTableRow-root > .MuiTableCell-root { border: 1px solid #cfcfcf !important; }
             .impressao-prenota .tabela-produtos .coluna-qtde { padding-right: 10px !important; min-width: 70px; }
             .impressao-prenota .tabela-produtos .coluna-valor { padding-right: 12px !important; min-width: 84px; }
             @media print {
-              @page { margin: 6mm; }
+              @page { size: A4; margin: 6mm; }
+              .pagina-a4 { min-height: calc(297mm - 12mm); }
+              .prenota-meia-pagina { min-height: calc((297mm - 12mm) / 2); }
             }
           </style>
         </head>
