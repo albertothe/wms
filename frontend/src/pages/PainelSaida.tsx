@@ -802,6 +802,9 @@ const PainelSaida: React.FC = () => {
             body { margin: 0; background: #fff; }
             .prenota-bloco { page-break-after: always; break-after: page; }
             .prenota-bloco:last-child { page-break-after: auto; break-after: auto; }
+            .impressao-prenota .tabela-produtos .MuiTableRow-root > .MuiTableCell-root { border: 1px solid #cfcfcf !important; }
+            .impressao-prenota .tabela-produtos .coluna-qtde { padding-right: 10px !important; min-width: 70px; }
+            .impressao-prenota .tabela-produtos .coluna-valor { padding-right: 12px !important; min-width: 84px; }
             @media print {
               @page { margin: 6mm; }
             }
