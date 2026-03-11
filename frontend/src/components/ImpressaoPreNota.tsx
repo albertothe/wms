@@ -88,6 +88,7 @@ const formatarValor = (valor: number): string => {
 const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, chave }) => {
     // Determinar o modelo de impressão (padrão é 1 se não especificado)
     const modeloImpressao = config.modeloImpressao || 1
+    const isModeloSimplificado = modeloImpressao === 2
 
     // Calcular totais se não forem fornecidos
     const totais = notaData.totais || {
@@ -137,16 +138,27 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
     }
 
     // Data atual formatada
-    const dataAtual = new Date().toLocaleString("pt-BR")
+    const dataAtual = new Date().toLocaleString("pt-BR").replace(",", "")
 
     return (
-        <Box sx={{ p: 2.5, maxWidth: "210mm", margin: "0 auto", bgcolor: "white", fontSize: "0.84rem" }} className="impressao-prenota">
+        <Box
+            sx={{
+                p: isModeloSimplificado ? 2 : 2.5,
+                maxWidth: "210mm",
+                margin: "0 auto",
+                bgcolor: "white",
+                fontSize: isModeloSimplificado ? "0.8rem" : "0.84rem",
+                fontFamily: "Arial, sans-serif",
+                color: "#000",
+            }}
+            className="impressao-prenota"
+        >
             {/* Cabeçalho */}
             <Box sx={{ mb: 1.2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="h6" component="h1" sx={{ fontWeight: "bold" }}>
+                <Typography variant="h6" component="h1" sx={{ fontWeight: 700, fontSize: isModeloSimplificado ? "1.9rem" : undefined }}>
                     IMPRESSÃO DE PRÉ-NOTA
                 </Typography>
-                <Typography variant="body2">Gerado em: {dataAtual}</Typography>
+                <Typography variant="body2" sx={{ fontSize: "0.88rem" }}>Gerado em: {dataAtual}</Typography>
             </Box>
 
             {/* Informações da Nota */}
@@ -171,20 +183,20 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             <Typography variant="body1" sx={{ mb: 0.5, fontWeight: "bold", textAlign: "center", fontSize: "0.85rem" }}>
                 Produtos
             </Typography>
-            <TableContainer component={Paper} sx={{ mb: 1.5, boxShadow: "none", border: "1px solid #ddd" }}>
+            <TableContainer component={Paper} sx={{ mb: 1.5, boxShadow: "none", border: "1px solid #ddd", borderRadius: 1 }}>
                 <Table size="small">
                     <TableHead>
-                        <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }}>Cód.</TableCell>
-                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }}>Descrição</TableCell>
-                            {modeloImpressao === 1 && <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }}>CodEndereço</TableCell>}
-                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }} align="right">
+                        <TableRow sx={{ backgroundColor: "#efefef" }}>
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0", width: "9%" }}>Cód.</TableCell>
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0" }}>Descrição</TableCell>
+                            {modeloImpressao === 1 && <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0" }}>CodEndereço</TableCell>}
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0", width: "8%" }} align="right">
                                 Qtde
                             </TableCell>
-                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }} align="right">
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0", width: "12%" }} align="right">
                                 Prç unit.
                             </TableCell>
-                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem" }} align="right">
+                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0", width: "12%" }} align="right">
                                 Prç Total
                             </TableCell>
                         </TableRow>
@@ -202,26 +214,26 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
 
                             return (
                                 <TableRow key={index}>
-                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }}>{produto.codigo}</TableCell>
-                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }}>{produto.descricao}</TableCell>
-                                    {modeloImpressao === 1 && <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }}>{enderecosMarcados || "-"}</TableCell>}
-                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }} align="right">{produto.quantidade.toFixed(2)}</TableCell>
-                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }} align="right">{formatarValor(produto.valorUnitario)}</TableCell>
-                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1 }} align="right">
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{produto.codigo}</TableCell>
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{produto.descricao}</TableCell>
+                                    {modeloImpressao === 1 && <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{enderecosMarcados || "-"}</TableCell>}
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }} align="right">{produto.quantidade.toFixed(2)}</TableCell>
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }} align="right">{formatarValor(produto.valorUnitario)}</TableCell>
+                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }} align="right">
                                         {formatarValor(produto.valorTotal || produto.quantidade * produto.valorUnitario)}
                                     </TableCell>
                                 </TableRow>
                             )
                         })}
                         <TableRow>
-                            <TableCell colSpan={modeloImpressao === 1 ? 3 : 2} sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem" }}>
+                            <TableCell colSpan={modeloImpressao === 1 ? 3 : 2} sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem", border: "1px solid #d0d0d0" }}>
                                 TOTAL
                             </TableCell>
-                            <TableCell align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem" }}>
+                            <TableCell align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem", border: "1px solid #d0d0d0" }}>
                                 {totais.quantidade.toFixed(2)}
                             </TableCell>
-                            <TableCell sx={{ py: 0.45, px: 0.6 }}></TableCell>
-                            <TableCell align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem" }}>
+                            <TableCell sx={{ py: 0.45, px: 0.6, border: "1px solid #d0d0d0" }}></TableCell>
+                            <TableCell align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem", border: "1px solid #d0d0d0" }}>
                                 {formatarValor(totais.valor)}
                             </TableCell>
                         </TableRow>
@@ -287,27 +299,27 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             )}
 
             {/* Observações adicionais para modelo 2 */}
-            {modeloImpressao === 2 && notaData.capa.observacoes && (
-                <Box sx={{ mb: 3, p: 2, border: "1px solid #ddd", borderRadius: 1 }}>
+            {modeloImpressao === 2 && (
+                <Box sx={{ mb: 3, p: 1.6, border: "1px solid #ddd", borderRadius: 1, minHeight: "56px" }}>
                     <Typography variant="body2" sx={{ fontWeight: "bold", mb: 1 }}>
                         Observações:
                     </Typography>
-                    <Typography variant="body2">{notaData.capa.observacoes}</Typography>
+                    <Typography variant="body2">{notaData.capa.observacoes || "-"}</Typography>
                 </Box>
             )}
 
             {/* Assinaturas */}
-            <Box sx={{ mt: 6, display: "flex", justifyContent: "space-around" }}>
+            <Box sx={{ mt: isModeloSimplificado ? 5 : 6, display: "flex", justifyContent: "space-around" }}>
                 <Box sx={{ textAlign: "center" }}>
-                    <Box sx={{ borderTop: "1px solid #000", width: "200px", mb: 1 }}></Box>
+                    <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
                     <Typography variant="body2">Separador</Typography>
                 </Box>
                 <Box sx={{ textAlign: "center" }}>
-                    <Box sx={{ borderTop: "1px solid #000", width: "200px", mb: 1 }}></Box>
+                    <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
                     <Typography variant="body2">Conferente</Typography>
                 </Box>
                 <Box sx={{ textAlign: "center" }}>
-                    <Box sx={{ borderTop: "1px solid #000", width: "200px", mb: 1 }}></Box>
+                    <Box sx={{ borderTop: "1px solid #000", width: isModeloSimplificado ? "160px" : "200px", mb: 1 }}></Box>
                     <Typography variant="body2">Cliente</Typography>
                 </Box>
             </Box>
