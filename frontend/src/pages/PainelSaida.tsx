@@ -793,6 +793,7 @@ const PainelSaida: React.FC = () => {
               chave={chave}
               meiaPagina={meiaPagina}
               ocultarAssinaturas
+              ocultarTituloProdutos
             />,
           )}</div>`,
         }
@@ -868,9 +869,15 @@ const PainelSaida: React.FC = () => {
               min-height: calc((285mm - 2mm) / 2);
             }
             .prenota-meia-pagina .impressao-prenota { height: 100%; }
-            .impressao-prenota .tabela-produtos .MuiTableRow-root > .MuiTableCell-root { border: 1px solid #cfcfcf !important; }
+            .impressao-prenota .tabela-produtos-container { border: 1px solid #cfcfcf !important; border-radius: 0 !important; }
+            .impressao-prenota .tabela-produtos { border-collapse: collapse !important; }
+            .impressao-prenota .tabela-produtos .MuiTableRow-root > .MuiTableCell-root { border: 1px solid #cfcfcf !important; font-size: 0.66rem !important; }
             .impressao-prenota .tabela-produtos .coluna-qtde { padding-right: 10px !important; min-width: 70px; }
             .impressao-prenota .tabela-produtos .coluna-valor { padding-right: 12px !important; min-width: 84px; }
+            .impressao-prenota .tabela-produtos th.coluna-qtde,
+            .impressao-prenota .tabela-produtos th.coluna-valor,
+            .impressao-prenota .tabela-produtos td.coluna-qtde,
+            .impressao-prenota .tabela-produtos td.coluna-valor { text-align: right !important; }
             @media print {
               @page { size: A4; margin: 6mm 6mm; }
               body { margin: 0; }
