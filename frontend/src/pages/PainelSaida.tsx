@@ -119,7 +119,7 @@ const formatarData = (data: string): string => {
   return data
 }
 
-const LIMITE_PRODUTOS_MEIA_PAGINA = 5
+const LIMITE_PRODUTOS_MEIA_PAGINA = 7
 
 const podeImprimirEmMeiaPagina = (notaData: any): boolean => {
   if (!notaData) return false
