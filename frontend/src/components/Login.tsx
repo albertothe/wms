@@ -1,7 +1,18 @@
 "use client"
 
 import { useState, useEffect, type FormEvent } from "react"
-import { TextField, Button, Box, Typography, Container, CircularProgress, Alert, Paper } from "@mui/material"
+import {
+  TextField,
+  Button,
+  Box,
+  Typography,
+  Container,
+  CircularProgress,
+  Alert,
+  Paper,
+  Checkbox,
+  FormControlLabel,
+} from "@mui/material"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -12,9 +23,12 @@ interface ConfiguracaoEmpresa {
   logo_url?: string
 }
 
+const LOGIN_SALVO_KEY = "login_salvo"
+
 const Login = () => {
   const [login, setLogin] = useState("")
   const [senha, setSenha] = useState("")
+  const [salvarLogin, setSalvarLogin] = useState(false)
   const [erro, setErro] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [configuracoes, setConfiguracoes] = useState<ConfiguracaoEmpresa>({
@@ -61,6 +75,12 @@ const Login = () => {
   useEffect(() => {
     console.log("Login component mounted, isAuthenticated:", isAuthenticated)
 
+    const loginSalvo = localStorage.getItem(LOGIN_SALVO_KEY)
+    if (loginSalvo) {
+      setLogin(loginSalvo)
+      setSalvarLogin(true)
+    }
+
     // Buscar configurações imediatamente
     buscarConfiguracoes()
 
@@ -94,6 +114,13 @@ const Login = () => {
     try {
       console.log("Tentando login com:", login)
       await authLogin(login, senha)
+
+      if (salvarLogin) {
+        localStorage.setItem(LOGIN_SALVO_KEY, login)
+      } else {
+        localStorage.removeItem(LOGIN_SALVO_KEY)
+      }
+
       console.log("Login bem-sucedido, redirecionando para /dashboard")
       navigate("/dashboard")
     } catch (err: any) {
@@ -170,6 +197,18 @@ const Login = () => {
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               disabled={isLoading}
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={salvarLogin}
+                  onChange={(e) => setSalvarLogin(e.target.checked)}
+                  disabled={isLoading}
+                />
+              }
+              label="Salvar usuário"
+              sx={{ mt: 1 }}
             />
 
             <TextField
