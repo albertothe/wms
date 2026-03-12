@@ -119,7 +119,7 @@ const formatarData = (data: string): string => {
   return data
 }
 
-const LIMITE_PRODUTOS_MEIA_PAGINA = 3
+const LIMITE_PRODUTOS_MEIA_PAGINA = 5
 
 const podeImprimirEmMeiaPagina = (notaData: any): boolean => {
   if (!notaData) return false
@@ -793,6 +793,7 @@ const PainelSaida: React.FC = () => {
               chave={chave}
               meiaPagina={meiaPagina}
               ocultarAssinaturas
+              ocultarDescricaoProdutos
             />,
           )}</div>`,
         }

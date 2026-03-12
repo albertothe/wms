@@ -63,6 +63,7 @@ interface ImpressaoPreNotaProps {
     chave?: string
     meiaPagina?: boolean
     ocultarAssinaturas?: boolean
+    ocultarDescricaoProdutos?: boolean
 }
 
 const formatarData = (dataString: string): string => {
@@ -87,7 +88,14 @@ const formatarValor = (valor: number): string => {
         .trim()
 }
 
-const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, chave, meiaPagina = false, ocultarAssinaturas = false }) => {
+const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({
+    notaData,
+    config,
+    chave,
+    meiaPagina = false,
+    ocultarAssinaturas = false,
+    ocultarDescricaoProdutos = false,
+}) => {
     // Determinar o modelo de impressão (padrão é 1 se não especificado)
     const modeloImpressao = config.modeloImpressao || 1
     const isModeloSimplificado = modeloImpressao === 2
@@ -182,15 +190,17 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
             </Box>
 
             {/* Tabela de Produtos */}
-            <Typography variant="body1" sx={{ mb: 0.5, fontWeight: "bold", textAlign: "center", fontSize: "0.85rem" }}>
-                Produtos
-            </Typography>
+            {!ocultarDescricaoProdutos && (
+                <Typography variant="body1" sx={{ mb: 0.5, fontWeight: "bold", textAlign: "center", fontSize: "0.85rem" }}>
+                    Produtos
+                </Typography>
+            )}
             <TableContainer component={Paper} className="tabela-produtos-container" sx={{ mb: 1.5, boxShadow: "none", border: "1px solid #ddd", borderRadius: 1 }}>
                 <Table size="small" className="tabela-produtos">
                     <TableHead>
                         <TableRow sx={{ backgroundColor: "#efefef" }}>
                             <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0", width: "9%" }}>Cód.</TableCell>
-                            <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0" }}>Descrição</TableCell>
+                            {!ocultarDescricaoProdutos && <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0" }}>Descrição</TableCell>}
                             {modeloImpressao === 1 && <TableCell sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0" }}>CodEndereço</TableCell>}
                             <TableCell className="coluna-qtde" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.7rem", border: "1px solid #d0d0d0", width: "9%" }} align="right">
                                 Qtde
@@ -217,7 +227,7 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
                             return (
                                 <TableRow key={index}>
                                     <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{produto.codigo}</TableCell>
-                                    <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{produto.descricao}</TableCell>
+                                    {!ocultarDescricaoProdutos && <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{produto.descricao}</TableCell>}
                                     {modeloImpressao === 1 && <TableCell sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }}>{enderecosMarcados || "-"}</TableCell>}
                                     <TableCell className="coluna-qtde" sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }} align="right">{produto.quantidade.toFixed(2)}</TableCell>
                                     <TableCell className="coluna-valor" sx={{ py: 0.35, px: 0.6, fontSize: "0.69rem", lineHeight: 1.1, border: "1px solid #dcdcdc" }} align="right">{formatarValor(produto.valorUnitario)}</TableCell>
@@ -228,7 +238,18 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({ notaData, config, c
                             )
                         })}
                         <TableRow>
-                            <TableCell colSpan={modeloImpressao === 1 ? 3 : 2} sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem", border: "1px solid #d0d0d0" }}>
+                            <TableCell
+                                colSpan={
+                                    modeloImpressao === 1
+                                        ? ocultarDescricaoProdutos
+                                            ? 2
+                                            : 3
+                                        : ocultarDescricaoProdutos
+                                          ? 1
+                                          : 2
+                                }
+                                sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem", border: "1px solid #d0d0d0" }}
+                            >
                                 TOTAL
                             </TableCell>
                             <TableCell className="coluna-qtde" align="right" sx={{ fontWeight: "bold", py: 0.45, px: 0.6, fontSize: "0.72rem", border: "1px solid #d0d0d0" }}>
