@@ -793,7 +793,6 @@ const PainelSaida: React.FC = () => {
               chave={chave}
               meiaPagina={meiaPagina}
               ocultarAssinaturas
-              ocultarDescricaoProdutos
             />,
           )}</div>`,
         }
