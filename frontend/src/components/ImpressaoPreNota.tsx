@@ -64,6 +64,7 @@ interface ImpressaoPreNotaProps {
     meiaPagina?: boolean
     ocultarAssinaturas?: boolean
     ocultarDescricaoProdutos?: boolean
+    ocultarTituloProdutos?: boolean
 }
 
 const formatarData = (dataString: string): string => {
@@ -95,6 +96,7 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({
     meiaPagina = false,
     ocultarAssinaturas = false,
     ocultarDescricaoProdutos = false,
+    ocultarTituloProdutos = false,
 }) => {
     // Determinar o modelo de impressão (padrão é 1 se não especificado)
     const modeloImpressao = config.modeloImpressao || 1
@@ -190,7 +192,7 @@ const ImpressaoPreNota: React.FC<ImpressaoPreNotaProps> = ({
             </Box>
 
             {/* Tabela de Produtos */}
-            {!ocultarDescricaoProdutos && (
+            {!ocultarDescricaoProdutos && !ocultarTituloProdutos && (
                 <Typography variant="body1" sx={{ mb: 0.5, fontWeight: "bold", textAlign: "center", fontSize: "0.85rem" }}>
                     Produtos
                 </Typography>
