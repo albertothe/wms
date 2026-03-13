@@ -10,7 +10,7 @@ const String _apiBaseUrl = String.fromEnvironment(
 );
 const String _savedLoginKey = 'saved_login';
 const String _authTokenKey = 'auth_token';
-const Color _brandRed = Color(0xFFE4272A);
+const Color _brandRed = Color(0xFF640B0B);
 
 void main() {
   runApp(const WmsApp());
