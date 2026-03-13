@@ -86,10 +86,117 @@ class _AuthGateState extends State<AuthGate> {
       return LoginScreen(onLoginSuccess: _onLoginSuccess);
     }
 
-    return SeparacaoScreen(
+    return AppTabsScreen(
       token: _token!,
       usuario: _usuario!,
       onLogout: _logout,
+    );
+  }
+}
+
+class AppTabsScreen extends StatefulWidget {
+  const AppTabsScreen({
+    super.key,
+    required this.token,
+    required this.usuario,
+    required this.onLogout,
+  });
+
+  final String token;
+  final String usuario;
+  final Future<void> Function() onLogout;
+
+  @override
+  State<AppTabsScreen> createState() => _AppTabsScreenState();
+}
+
+class _AppTabsScreenState extends State<AppTabsScreen> {
+  int _paginaAtual = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _paginaAtual,
+        children: [
+          SeparacaoScreen(
+            token: widget.token,
+            usuario: widget.usuario,
+            onLogout: widget.onLogout,
+          ),
+          BlankPanelScreen(
+            titulo: 'Painel de Saída',
+            onLogout: widget.onLogout,
+          ),
+          BlankPanelScreen(
+            titulo: 'Painel de Entrada',
+            onLogout: widget.onLogout,
+          ),
+          BlankPanelScreen(titulo: 'Produtos', onLogout: widget.onLogout),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _paginaAtual,
+        onDestinationSelected: (index) {
+          setState(() {
+            _paginaAtual = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
+            label: 'SEPARAÇÃO',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.exit_to_app_outlined),
+            selectedIcon: Icon(Icons.exit_to_app),
+            label: 'SAÍDA',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.input_outlined),
+            selectedIcon: Icon(Icons.input),
+            label: 'ENTRADA',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
+            label: 'PRODUTOS',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BlankPanelScreen extends StatelessWidget {
+  const BlankPanelScreen({
+    super.key,
+    required this.titulo,
+    required this.onLogout,
+  });
+
+  final String titulo;
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2E67B0),
+        foregroundColor: Colors.white,
+        title: Text(titulo),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              onPressed: () async => onLogout(),
+              icon: const Icon(Icons.logout),
+            ),
+          ),
+        ],
+      ),
+      body: const SizedBox.expand(),
     );
   }
 }
