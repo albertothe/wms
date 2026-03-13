@@ -22,7 +22,7 @@ class WmsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'WMS Separação',
+      title: 'SEnd',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: _brandRed),
         scaffoldBackgroundColor: const Color(0xFFF0F0F0),
@@ -332,12 +332,22 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Sistema de\nEndereçamento',
+              'SEnd',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 50,
                 height: 1,
                 fontWeight: FontWeight.w800,
+                color: _brandRed,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Sistema de endereçamento',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
                 color: _brandRed,
               ),
             ),
