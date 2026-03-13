@@ -36,7 +36,10 @@ class WmsApp extends StatelessWidget {
           }),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return const TextStyle(color: _brandRed, fontWeight: FontWeight.w700);
+              return const TextStyle(
+                color: _brandRed,
+                fontWeight: FontWeight.w700,
+              );
             }
             return const TextStyle(color: Color(0xFF64748B));
           }),
@@ -102,11 +105,7 @@ class _AuthGateState extends State<AuthGate> {
       return LoginScreen(onLoginSuccess: _onLoginSuccess);
     }
 
-    return AppTabsScreen(
-      token: _token!,
-      usuario: _usuario!,
-      onLogout: _logout,
-    );
+    return AppTabsScreen(token: _token!, usuario: _usuario!, onLogout: _logout);
   }
 }
 
@@ -328,7 +327,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: _brandRed,
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 44),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                color: Colors.white,
+                size: 44,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -369,11 +372,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text('Acesso ao Sistema', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+                        const Text(
+                          'Acesso ao Sistema',
+                          style: TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 6),
-                        const Text('Insira suas credenciais para acessar o painel'),
+                        const Text(
+                          'Insira suas credenciais para acessar o painel',
+                        ),
                         const SizedBox(height: 18),
-                        const Text('Usuário', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Text(
+                          'Usuário',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _usuarioController,
@@ -382,10 +396,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: Icon(Icons.person_outline),
                           ),
                           validator: (value) =>
-                              (value == null || value.trim().isEmpty) ? 'Informe o usuário' : null,
+                              (value == null || value.trim().isEmpty)
+                              ? 'Informe o usuário'
+                              : null,
                         ),
                         const SizedBox(height: 14),
-                        const Text('Senha', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Text(
+                          'Senha',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _senhaController,
@@ -394,13 +413,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             hintText: '••••••••',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              tooltip: _mostrarSenha ? 'Ocultar senha' : 'Exibir senha',
-                              onPressed: () => setState(() => _mostrarSenha = !_mostrarSenha),
-                              icon: Icon(_mostrarSenha ? Icons.visibility_off : Icons.visibility),
+                              tooltip: _mostrarSenha
+                                  ? 'Ocultar senha'
+                                  : 'Exibir senha',
+                              onPressed: () => setState(
+                                () => _mostrarSenha = !_mostrarSenha,
+                              ),
+                              icon: Icon(
+                                _mostrarSenha
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
                             ),
                           ),
-                          validator: (value) =>
-                              (value == null || value.isEmpty) ? 'Informe a senha' : null,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Informe a senha'
+                              : null,
                         ),
                         const SizedBox(height: 8),
                         CheckboxListTile(
@@ -411,10 +439,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           title: const Text('Lembrar meu usuário'),
                           onChanged: _loading
                               ? null
-                              : (value) => setState(() => _salvarUsuario = value ?? true),
+                              : (value) => setState(
+                                  () => _salvarUsuario = value ?? true,
+                                ),
                         ),
                         if (_erro != null) ...[
-                          Text(_erro!, style: const TextStyle(color: Colors.red)),
+                          Text(
+                            _erro!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
                           const SizedBox(height: 12),
                         ],
                         FilledButton(
@@ -422,14 +455,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             backgroundColor: _brandRed,
                             foregroundColor: Colors.white,
                             minimumSize: const Size(double.infinity, 50),
-                            textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                            textStyle: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           onPressed: _loading ? null : _submit,
                           child: _loading
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
                                 )
                               : const Text('Entrar'),
                         ),
@@ -537,7 +576,8 @@ class SeparacaoItem {
       codproduto: (json['codproduto'] ?? '').toString(),
       produto: (json['produto'] ?? '').toString(),
       qtdeTotal: double.tryParse((json['qtde_total'] ?? 0).toString()) ?? 0,
-      qtdeSeparada: double.tryParse((json['qtde_separada'] ?? 0).toString()) ?? 0,
+      qtdeSeparada:
+          double.tryParse((json['qtde_separada'] ?? 0).toString()) ?? 0,
     );
   }
 }
@@ -707,8 +747,11 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                 }
 
                 if (response.statusCode >= 400) {
-                  final payload = jsonDecode(response.body) as Map<String, dynamic>;
-                  throw Exception(payload['erro'] ?? 'Erro ao salvar quantidade');
+                  final payload =
+                      jsonDecode(response.body) as Map<String, dynamic>;
+                  throw Exception(
+                    payload['erro'] ?? 'Erro ao salvar quantidade',
+                  );
                 }
 
                 if (!mounted) {
@@ -734,8 +777,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                     0,
                     (acc, it) => acc + it.qtdeSeparada,
                   );
-                  final progresso =
-                      total <= 0 ? 0.0 : (separado / total) * 100;
+                  final progresso = total <= 0 ? 0.0 : (separado / total) * 100;
 
                   _tarefas = _tarefas
                       .map(
@@ -785,7 +827,9 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: salvando ? null : () => Navigator.of(context).pop(),
+                  onPressed: salvando
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   child: const Text('Cancelar'),
                 ),
                 FilledButton(
@@ -944,7 +988,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
       appBar: AppBar(
         backgroundColor: _brandRed,
         foregroundColor: Colors.white,
-        title: const Text('Minhas Tarefas'),
+        title: const Text('Painel de Separação'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -1107,13 +1151,17 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                                 _erroItens[tarefa.chave]!,
                                 style: const TextStyle(color: Colors.red),
                               )
-                            else if ((_itensPorChave[tarefa.chave] ?? []).isEmpty)
-                              const Text('Nenhum produto encontrado para esta venda.')
+                            else if ((_itensPorChave[tarefa.chave] ?? [])
+                                .isEmpty)
+                              const Text(
+                                'Nenhum produto encontrado para esta venda.',
+                              )
                             else
                               ..._itensPorChave[tarefa.chave]!.map(
                                 (item) => InkWell(
                                   borderRadius: BorderRadius.circular(12),
-                                  onTap: () => _abrirDialogoQuantidade(tarefa, item),
+                                  onTap: () =>
+                                      _abrirDialogoQuantidade(tarefa, item),
                                   child: Container(
                                     width: double.infinity,
                                     margin: const EdgeInsets.only(bottom: 10),
