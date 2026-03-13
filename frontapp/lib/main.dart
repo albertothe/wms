@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:9001',
+  defaultValue: 'http://172.20.33.15:9001',
 );
 const String _savedLoginKey = 'saved_login';
 const String _authTokenKey = 'auth_token';
@@ -86,7 +86,11 @@ class _AuthGateState extends State<AuthGate> {
       return LoginScreen(onLoginSuccess: _onLoginSuccess);
     }
 
-    return SeparacaoScreen(token: _token!, usuario: _usuario!, onLogout: _logout);
+    return SeparacaoScreen(
+      token: _token!,
+      usuario: _usuario!,
+      onLogout: _logout,
+    );
   }
 }
 
@@ -150,7 +154,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final token = payload['token'] as String?;
-      final usuario = (payload['usuario']?['login'] as String?) ?? _usuarioController.text.trim().toUpperCase();
+      final usuario =
+          (payload['usuario']?['login'] as String?) ??
+          _usuarioController.text.trim().toUpperCase();
 
       if (token == null || token.isEmpty) {
         throw Exception('Token inválido retornado pelo backend');
@@ -200,28 +206,42 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('WMS Separação', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                    const Text(
+                      'WMS Separação',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     const Text('Faça login para continuar'),
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: _usuarioController,
                       decoration: const InputDecoration(labelText: 'Usuário'),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? 'Informe o usuário' : null,
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
+                          ? 'Informe o usuário'
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _senhaController,
                       obscureText: true,
                       decoration: const InputDecoration(labelText: 'Senha'),
-                      validator: (value) => (value == null || value.isEmpty) ? 'Informe a senha' : null,
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Informe a senha'
+                          : null,
                     ),
                     CheckboxListTile(
                       value: _salvarUsuario,
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       title: const Text('Salvar usuário neste dispositivo'),
-                      onChanged: _loading ? null : (value) => setState(() => _salvarUsuario = value ?? true),
+                      onChanged: _loading
+                          ? null
+                          : (value) =>
+                                setState(() => _salvarUsuario = value ?? true),
                     ),
                     if (_erro != null) ...[
                       Text(_erro!, style: const TextStyle(color: Colors.red)),
@@ -230,7 +250,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     FilledButton(
                       onPressed: _loading ? null : _submit,
                       child: _loading
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Text('Entrar'),
                     ),
                   ],
@@ -280,7 +304,12 @@ class Separacao {
 }
 
 class SeparacaoScreen extends StatefulWidget {
-  const SeparacaoScreen({super.key, required this.token, required this.usuario, required this.onLogout});
+  const SeparacaoScreen({
+    super.key,
+    required this.token,
+    required this.usuario,
+    required this.onLogout,
+  });
 
   final String token;
   final String usuario;
@@ -311,7 +340,9 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('$_apiBaseUrl/separacao?usuario=${Uri.encodeQueryComponent(widget.usuario)}'),
+        Uri.parse(
+          '$_apiBaseUrl/separacao?usuario=${Uri.encodeQueryComponent(widget.usuario)}',
+        ),
         headers: {'Authorization': 'Bearer ${widget.token}'},
       );
 
@@ -353,7 +384,8 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
       };
 
       final busca = _busca.toLowerCase();
-      final porTexto = busca.isEmpty ||
+      final porTexto =
+          busca.isEmpty ||
           tarefa.cliente.toLowerCase().contains(busca) ||
           tarefa.np.toLowerCase().contains(busca) ||
           tarefa.codloja.toString().contains(busca);
@@ -403,7 +435,10 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                 fillColor: Colors.white,
                 hintText: 'Buscar por cliente, nota ou loja...',
                 prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
               ),
               onChanged: (value) => setState(() => _busca = value),
             ),
@@ -449,7 +484,13 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                       children: [
                         Text('Loja ${tarefa.codloja} • NF-${tarefa.np}'),
                         const SizedBox(height: 4),
-                        Text(tarefa.cliente, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                        Text(
+                          tarefa.cliente,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(tarefa.tipoentrega),
                         const SizedBox(height: 4),
@@ -458,12 +499,20 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(_statusLabel(tarefa.status), style: const TextStyle(fontWeight: FontWeight.w600)),
+                            Text(
+                              _statusLabel(tarefa.status),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             Text('${tarefa.progresso.toStringAsFixed(0)}%'),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        LinearProgressIndicator(value: tarefa.progresso / 100, minHeight: 8),
+                        LinearProgressIndicator(
+                          value: tarefa.progresso / 100,
+                          minHeight: 8,
+                        ),
                       ],
                     ),
                   ),
