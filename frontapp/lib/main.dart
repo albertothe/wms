@@ -304,6 +304,19 @@ class Separacao {
   final String status;
   final double progresso;
 
+  Separacao copyWith({double? progresso}) {
+    return Separacao(
+      chave: chave,
+      codloja: codloja,
+      np: np,
+      cliente: cliente,
+      tipoentrega: tipoentrega,
+      separador: separador,
+      status: status,
+      progresso: progresso ?? this.progresso,
+    );
+  }
+
   static String normalizarStatus(dynamic status) {
     final valor = (status ?? '').toString().trim().toUpperCase();
     if (valor == 'S') {
@@ -341,6 +354,15 @@ class SeparacaoItem {
   final String produto;
   final double qtdeTotal;
   final double qtdeSeparada;
+
+  SeparacaoItem copyWith({double? qtdeSeparada}) {
+    return SeparacaoItem(
+      codproduto: codproduto,
+      produto: produto,
+      qtdeTotal: qtdeTotal,
+      qtdeSeparada: qtdeSeparada ?? this.qtdeSeparada,
+    );
+  }
 
   factory SeparacaoItem.fromJson(Map<String, dynamic> json) {
     return SeparacaoItem(
@@ -451,6 +473,169 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   String _formatarQuantidade(double valor) {
     final inteiro = valor.truncateToDouble() == valor;
     return inteiro ? valor.toStringAsFixed(0) : valor.toStringAsFixed(2);
+  }
+
+  Future<void> _abrirDialogoQuantidade(
+    Separacao tarefa,
+    SeparacaoItem item,
+  ) async {
+    final controller = TextEditingController(
+      text: _formatarQuantidade(item.qtdeSeparada),
+    );
+    String? erro;
+    bool salvando = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !salvando,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> salvarQuantidade() async {
+              final texto = controller.text.trim().replaceAll(',', '.');
+              final quantidade = double.tryParse(texto);
+
+              if (quantidade == null) {
+                setDialogState(() => erro = 'Informe uma quantidade válida.');
+                return;
+              }
+
+              if (quantidade < 0 || quantidade > item.qtdeTotal) {
+                setDialogState(
+                  () => erro =
+                      'A quantidade deve estar entre 0 e ${_formatarQuantidade(item.qtdeTotal)}.',
+                );
+                return;
+              }
+
+              setDialogState(() {
+                erro = null;
+                salvando = true;
+              });
+
+              try {
+                final response = await http.post(
+                  Uri.parse('$_apiBaseUrl/separacao/item'),
+                  headers: {
+                    'Authorization': 'Bearer ${widget.token}',
+                    'Content-Type': 'application/json',
+                  },
+                  body: jsonEncode({
+                    'chave': tarefa.chave,
+                    'codloja': tarefa.codloja,
+                    'np': tarefa.np,
+                    'codproduto': item.codproduto,
+                    'qtde_separada': quantidade,
+                  }),
+                );
+
+                if (response.statusCode == 401) {
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+                  await widget.onLogout();
+                  return;
+                }
+
+                if (response.statusCode >= 400) {
+                  final payload = jsonDecode(response.body) as Map<String, dynamic>;
+                  throw Exception(payload['erro'] ?? 'Erro ao salvar quantidade');
+                }
+
+                if (!mounted) {
+                  return;
+                }
+
+                setState(() {
+                  final itens = _itensPorChave[tarefa.chave] ?? [];
+                  _itensPorChave[tarefa.chave] = itens
+                      .map(
+                        (it) => it.codproduto == item.codproduto
+                            ? it.copyWith(qtdeSeparada: quantidade)
+                            : it,
+                      )
+                      .toList();
+
+                  final itensAtualizados = _itensPorChave[tarefa.chave] ?? [];
+                  final total = itensAtualizados.fold<double>(
+                    0,
+                    (acc, it) => acc + it.qtdeTotal,
+                  );
+                  final separado = itensAtualizados.fold<double>(
+                    0,
+                    (acc, it) => acc + it.qtdeSeparada,
+                  );
+                  final progresso = total <= 0 ? 0 : (separado / total) * 100;
+
+                  _tarefas = _tarefas
+                      .map(
+                        (t) => t.chave == tarefa.chave
+                            ? t.copyWith(progresso: progresso)
+                            : t,
+                      )
+                      .toList();
+                });
+
+                Navigator.of(context).pop();
+              } catch (e) {
+                setDialogState(() {
+                  erro = e.toString().replaceFirst('Exception: ', '');
+                  salvando = false;
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Informar Quantidade'),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.produto,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: controller,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Quantidade Separada',
+                        helperText:
+                            'Total: ${_formatarQuantidade(item.qtdeTotal)} un',
+                        errorText: erro,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: salvando ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: salvando ? null : salvarQuantidade,
+                  child: salvando
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Confirmar Quantidade'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
   }
 
   Future<void> _carregar() async {
@@ -676,59 +861,63 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                               const Text('Nenhum produto encontrado para esta venda.')
                             else
                               ..._itensPorChave[tarefa.chave]!.map(
-                                (item) => Container(
-                                  width: double.infinity,
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8F0),
+                                (item) => InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () => _abrirDialogoQuantidade(tarefa, item),
+                                  child: Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFE2E8F0),
+                                      ),
+                                      color: Colors.white,
                                     ),
-                                    color: Colors.white,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.codproduto,
-                                        style: const TextStyle(
-                                          color: Color(0xFF64748B),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        item.produto,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                          border: Border.all(
-                                            color: const Color(0xFFBBD2F1),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '${_formatarQuantidade(item.qtdeSeparada)} / ${_formatarQuantidade(item.qtdeTotal)} un',
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.codproduto,
                                           style: const TextStyle(
-                                            color: Color(0xFF2E67B0),
-                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF64748B),
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          item.produto,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                            border: Border.all(
+                                              color: const Color(0xFFBBD2F1),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${_formatarQuantidade(item.qtdeSeparada)} / ${_formatarQuantidade(item.qtdeTotal)} un',
+                                            style: const TextStyle(
+                                              color: Color(0xFF2E67B0),
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
