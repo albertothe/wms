@@ -565,7 +565,8 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                     0,
                     (acc, it) => acc + it.qtdeSeparada,
                   );
-                  final progresso = total <= 0 ? 0 : (separado / total) * 100;
+                  final progresso =
+                      total <= 0 ? 0.0 : (separado / total) * 100;
 
                   _tarefas = _tarefas
                       .map(
