@@ -10,6 +10,7 @@ const String _apiBaseUrl = String.fromEnvironment(
 );
 const String _savedLoginKey = 'saved_login';
 const String _authTokenKey = 'auth_token';
+const Color _brandRed = Color(0xFFE4272A);
 
 void main() {
   runApp(const WmsApp());
@@ -23,8 +24,23 @@ class WmsApp extends StatelessWidget {
     return MaterialApp(
       title: 'WMS Separação',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E67B0)),
-        scaffoldBackgroundColor: const Color(0xFFF2F4F8),
+        colorScheme: ColorScheme.fromSeed(seedColor: _brandRed),
+        scaffoldBackgroundColor: const Color(0xFFF0F0F0),
+        navigationBarTheme: NavigationBarThemeData(
+          indicatorColor: _brandRed.withOpacity(0.15),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: _brandRed);
+            }
+            return const IconThemeData(color: Color(0xFF64748B));
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(color: _brandRed, fontWeight: FontWeight.w700);
+            }
+            return const TextStyle(color: Color(0xFF64748B));
+          }),
+        ),
         useMaterial3: true,
       ),
       home: const AuthGate(),
@@ -183,7 +199,7 @@ class BlankPanelScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2E67B0),
+        backgroundColor: _brandRed,
         foregroundColor: Colors.white,
         title: Text(titulo),
         actions: [
@@ -301,89 +317,124 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            margin: const EdgeInsets.all(20),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'WMS Separação',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Faça login para continuar'),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _usuarioController,
-                      decoration: const InputDecoration(labelText: 'Usuário'),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                          ? 'Informe o usuário'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _senhaController,
-                      obscureText: !_mostrarSenha,
-                      decoration: InputDecoration(
-                        labelText: 'Senha',
-                        suffixIcon: IconButton(
-                          tooltip: _mostrarSenha
-                              ? 'Ocultar senha'
-                              : 'Exibir senha',
-                          onPressed: () =>
-                              setState(() => _mostrarSenha = !_mostrarSenha),
-                          icon: Icon(
-                            _mostrarSenha
-                                ? Icons.visibility_off
-                                : Icons.visibility,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 28),
+        child: Column(
+          children: [
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: _brandRed,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 44),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Sistema de\nEndereçamento',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 50,
+                height: 1,
+                fontWeight: FontWeight.w800,
+                color: _brandRed,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Card(
+                color: const Color(0xFFF7F7F7),
+                elevation: 8,
+                shadowColor: Colors.black26,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: Color(0xFFEAEAEA)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text('Acesso ao Sistema', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 6),
+                        const Text('Insira suas credenciais para acessar o painel'),
+                        const SizedBox(height: 18),
+                        const Text('Usuário', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _usuarioController,
+                          decoration: const InputDecoration(
+                            hintText: 'Seu usuário',
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
+                          validator: (value) =>
+                              (value == null || value.trim().isEmpty) ? 'Informe o usuário' : null,
                         ),
-                      ),
-                      validator: (value) => (value == null || value.isEmpty)
-                          ? 'Informe a senha'
-                          : null,
+                        const SizedBox(height: 14),
+                        const Text('Senha', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _senhaController,
+                          obscureText: !_mostrarSenha,
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              tooltip: _mostrarSenha ? 'Ocultar senha' : 'Exibir senha',
+                              onPressed: () => setState(() => _mostrarSenha = !_mostrarSenha),
+                              icon: Icon(_mostrarSenha ? Icons.visibility_off : Icons.visibility),
+                            ),
+                          ),
+                          validator: (value) =>
+                              (value == null || value.isEmpty) ? 'Informe a senha' : null,
+                        ),
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          value: _salvarUsuario,
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: _brandRed,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: const Text('Lembrar meu usuário'),
+                          onChanged: _loading
+                              ? null
+                              : (value) => setState(() => _salvarUsuario = value ?? true),
+                        ),
+                        if (_erro != null) ...[
+                          Text(_erro!, style: const TextStyle(color: Colors.red)),
+                          const SizedBox(height: 12),
+                        ],
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: _brandRed,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 50),
+                            textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                          ),
+                          onPressed: _loading ? null : _submit,
+                          child: _loading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('Entrar'),
+                        ),
+                      ],
                     ),
-                    CheckboxListTile(
-                      value: _salvarUsuario,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: const Text('Salvar usuário neste dispositivo'),
-                      onChanged: _loading
-                          ? null
-                          : (value) =>
-                                setState(() => _salvarUsuario = value ?? true),
-                    ),
-                    if (_erro != null) ...[
-                      Text(_erro!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 12),
-                    ],
-                    FilledButton(
-                      onPressed: _loading ? null : _submit,
-                      child: _loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Entrar'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+            const SizedBox(height: 24),
+            const Text(
+              '© 2026 JMonte - Sistema de Endereçamento.',
+              style: TextStyle(color: Color(0xFF475569), fontSize: 14),
+            ),
+          ],
         ),
       ),
     );
@@ -881,7 +932,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2E67B0),
+        backgroundColor: _brandRed,
         foregroundColor: Colors.white,
         title: const Text('Minhas Tarefas'),
         actions: [
@@ -944,7 +995,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                   margin: const EdgeInsets.only(bottom: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Color(0xFF2E67B0), width: 1),
+                    side: const BorderSide(color: _brandRed, width: 1),
                   ),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -1100,7 +1151,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                                           child: Text(
                                             '${_formatarQuantidade(item.qtdeSeparada)} / ${_formatarQuantidade(item.qtdeTotal)} un',
                                             style: const TextStyle(
-                                              color: Color(0xFF2E67B0),
+                                              color: _brandRed,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
