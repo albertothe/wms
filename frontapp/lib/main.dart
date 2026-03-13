@@ -399,6 +399,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   final Set<String> _expandida = {};
   final Map<String, List<SeparacaoItem>> _itensPorChave = {};
   final Set<String> _itensCarregando = {};
+  final Set<String> _finalizando = {};
   final Map<String, String> _erroItens = {};
 
   @override
@@ -711,6 +712,62 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
     }
   }
 
+  bool _podeFinalizar(Separacao tarefa) {
+    if (tarefa.status != 'A') {
+      return false;
+    }
+
+    return tarefa.progresso >= 100;
+  }
+
+  Future<void> _finalizarSeparacao(Separacao tarefa) async {
+    if (_finalizando.contains(tarefa.chave)) {
+      return;
+    }
+
+    setState(() {
+      _finalizando.add(tarefa.chave);
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_apiBaseUrl/separacao/finalizar'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'chave': tarefa.chave}),
+      );
+
+      if (response.statusCode == 401) {
+        await widget.onLogout();
+        return;
+      }
+
+      if (response.statusCode >= 400) {
+        final payload = jsonDecode(response.body) as Map<String, dynamic>;
+        throw Exception(payload['erro'] ?? 'Erro ao finalizar separação');
+      }
+
+      await _carregar();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      final mensagem = e.toString().replaceFirst('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(mensagem), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _finalizando.remove(tarefa.chave);
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tarefas = _filtradas;
@@ -834,6 +891,30 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                             value: tarefa.progresso / 100,
                             minHeight: 8,
                           ),
+                          if (_podeFinalizar(tarefa)) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
+                                onPressed: _finalizando.contains(tarefa.chave)
+                                    ? null
+                                    : () => _finalizarSeparacao(tarefa),
+                                icon: _finalizando.contains(tarefa.chave)
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.check_circle_outline),
+                                label: const Text('Finalizar separação'),
+                              ),
+                            ),
+                          ],
                           if (_expandida.contains(tarefa.chave)) ...[
                             const SizedBox(height: 14),
                             const Divider(height: 1),
