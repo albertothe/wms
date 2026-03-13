@@ -196,12 +196,9 @@ const PainelSeparacao: React.FC = () => {
   }
 
   const podeFinalizar = (separacao: Separacao) => {
-    const itens = itensPorChave[separacao.chave] || []
-    if (itens.length === 0) return false
-    const todosSeparados = itens.every(
-      (item) => normalizarQuantidade(Number(item.qtde_separada), Number(item.qtde_total)) === Number(item.qtde_total),
-    )
-    return todosSeparados && Number(separacao.progresso || 0) >= 100
+    if (separacao.status !== "S") return false
+
+    return Number(separacao.progresso || 0) >= 100
   }
 
   const finalizarSeparacao = async (separacao: Separacao) => {
