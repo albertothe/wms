@@ -350,7 +350,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   String? _erro;
   List<Separacao> _tarefas = [];
   String _busca = '';
-  String _aba = 'P';
+  String _aba = 'A';
 
   @override
   void initState() {
@@ -404,7 +404,6 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   List<Separacao> get _filtradas {
     return _tarefas.where((tarefa) {
       final porAba = switch (_aba) {
-        'P' => tarefa.status == 'P',
         'F' => tarefa.status == 'F',
         _ => tarefa.status == 'A',
       };
@@ -471,7 +470,6 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
             const SizedBox(height: 12),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'P', label: Text('Pendentes')),
                 ButtonSegment(value: 'A', label: Text('Ativas')),
                 ButtonSegment(value: 'F', label: Text('Feitas')),
               ],
