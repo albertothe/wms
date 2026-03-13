@@ -304,6 +304,17 @@ class Separacao {
   final String status;
   final double progresso;
 
+  static String normalizarStatus(dynamic status) {
+    final valor = (status ?? '').toString().trim().toUpperCase();
+    if (valor == 'S') {
+      return 'A';
+    }
+    if (valor == 'P' || valor == 'F' || valor == 'A') {
+      return valor;
+    }
+    return 'A';
+  }
+
   factory Separacao.fromJson(Map<String, dynamic> json) {
     return Separacao(
       chave: (json['chave'] ?? '').toString(),
@@ -312,7 +323,7 @@ class Separacao {
       cliente: (json['cliente'] ?? '').toString(),
       tipoentrega: (json['tipoentrega'] ?? '').toString(),
       separador: (json['separador'] ?? '').toString(),
-      status: (json['status'] ?? '').toString(),
+      status: normalizarStatus(json['status']),
       progresso: double.tryParse((json['progresso'] ?? 0).toString()) ?? 0,
     );
   }
@@ -339,7 +350,7 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   String? _erro;
   List<Separacao> _tarefas = [];
   String _busca = '';
-  String _aba = 'A';
+  String _aba = 'P';
 
   @override
   void initState() {
