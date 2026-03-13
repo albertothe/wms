@@ -108,6 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usuarioController = TextEditingController();
   final _senhaController = TextEditingController();
   bool _salvarUsuario = true;
+  bool _mostrarSenha = false;
   bool _loading = false;
   String? _erro;
 
@@ -227,8 +228,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _senhaController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Senha'),
+                      obscureText: !_mostrarSenha,
+                      decoration: InputDecoration(
+                        labelText: 'Senha',
+                        suffixIcon: IconButton(
+                          tooltip: _mostrarSenha
+                              ? 'Ocultar senha'
+                              : 'Exibir senha',
+                          onPressed: () =>
+                              setState(() => _mostrarSenha = !_mostrarSenha),
+                          icon: Icon(
+                            _mostrarSenha
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                        ),
+                      ),
                       validator: (value) => (value == null || value.isEmpty)
                           ? 'Informe a senha'
                           : null,
