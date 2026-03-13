@@ -329,6 +329,29 @@ class Separacao {
   }
 }
 
+class SeparacaoItem {
+  const SeparacaoItem({
+    required this.codproduto,
+    required this.produto,
+    required this.qtdeTotal,
+    required this.qtdeSeparada,
+  });
+
+  final String codproduto;
+  final String produto;
+  final double qtdeTotal;
+  final double qtdeSeparada;
+
+  factory SeparacaoItem.fromJson(Map<String, dynamic> json) {
+    return SeparacaoItem(
+      codproduto: (json['codproduto'] ?? '').toString(),
+      produto: (json['produto'] ?? '').toString(),
+      qtdeTotal: double.tryParse((json['qtde_total'] ?? 0).toString()) ?? 0,
+      qtdeSeparada: double.tryParse((json['qtde_separada'] ?? 0).toString()) ?? 0,
+    );
+  }
+}
+
 class SeparacaoScreen extends StatefulWidget {
   const SeparacaoScreen({
     super.key,
@@ -351,11 +374,83 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   List<Separacao> _tarefas = [];
   String _busca = '';
   String _aba = 'A';
+  final Set<String> _expandida = {};
+  final Map<String, List<SeparacaoItem>> _itensPorChave = {};
+  final Set<String> _itensCarregando = {};
+  final Map<String, String> _erroItens = {};
 
   @override
   void initState() {
     super.initState();
     _carregar();
+  }
+
+  Future<void> _carregarItens(Separacao tarefa) async {
+    if (_itensPorChave.containsKey(tarefa.chave) ||
+        _itensCarregando.contains(tarefa.chave)) {
+      return;
+    }
+
+    setState(() {
+      _itensCarregando.add(tarefa.chave);
+      _erroItens.remove(tarefa.chave);
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '$_apiBaseUrl/separacao/itens?chave=${Uri.encodeQueryComponent(tarefa.chave)}',
+        ),
+        headers: {'Authorization': 'Bearer ${widget.token}'},
+      );
+
+      if (response.statusCode == 401) {
+        await widget.onLogout();
+        return;
+      }
+
+      if (response.statusCode >= 400) {
+        throw Exception('Erro ao carregar produtos (${response.statusCode})');
+      }
+
+      final itens = (jsonDecode(response.body) as List<dynamic>)
+          .map((item) => SeparacaoItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        _itensPorChave[tarefa.chave] = itens;
+      });
+    } catch (e) {
+      setState(() {
+        _erroItens[tarefa.chave] = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _itensCarregando.remove(tarefa.chave);
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleExpandir(Separacao tarefa) async {
+    final expandida = _expandida.contains(tarefa.chave);
+    if (expandida) {
+      setState(() {
+        _expandida.remove(tarefa.chave);
+      });
+      return;
+    }
+
+    setState(() {
+      _expandida.add(tarefa.chave);
+    });
+    await _carregarItens(tarefa);
+  }
+
+  String _formatarQuantidade(double valor) {
+    final inteiro = valor.truncateToDouble() == valor;
+    return inteiro ? valor.toStringAsFixed(0) : valor.toStringAsFixed(2);
   }
 
   Future<void> _carregar() async {
@@ -501,43 +596,145 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
                     borderRadius: BorderRadius.circular(12),
                     side: const BorderSide(color: Color(0xFF2E67B0), width: 1),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Loja ${tarefa.codloja} • NF-${tarefa.np}'),
-                        const SizedBox(height: 4),
-                        Text(
-                          tarefa.cliente,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _toggleExpandir(tarefa),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Loja ${tarefa.codloja} • NF-${tarefa.np}',
+                                ),
+                              ),
+                              Icon(
+                                _expandida.contains(tarefa.chave)
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(tarefa.tipoentrega),
-                        const SizedBox(height: 4),
-                        Text('Separador: ${tarefa.separador}'),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _statusLabel(tarefa.status),
+                          const SizedBox(height: 4),
+                          Text(
+                            tarefa.cliente,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(tarefa.tipoentrega),
+                          const SizedBox(height: 4),
+                          Text('Separador: ${tarefa.separador}'),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _statusLabel(tarefa.status),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text('${tarefa.progresso.toStringAsFixed(0)}%'),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value: tarefa.progresso / 100,
+                            minHeight: 8,
+                          ),
+                          if (_expandida.contains(tarefa.chave)) ...[
+                            const SizedBox(height: 14),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Produtos para separar',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
+                                fontSize: 18,
                               ),
                             ),
-                            Text('${tarefa.progresso.toStringAsFixed(0)}%'),
+                            const SizedBox(height: 10),
+                            if (_itensCarregando.contains(tarefa.chave))
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            else if (_erroItens.containsKey(tarefa.chave))
+                              Text(
+                                _erroItens[tarefa.chave]!,
+                                style: const TextStyle(color: Colors.red),
+                              )
+                            else if ((_itensPorChave[tarefa.chave] ?? []).isEmpty)
+                              const Text('Nenhum produto encontrado para esta venda.')
+                            else
+                              ..._itensPorChave[tarefa.chave]!.map(
+                                (item) => Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFE2E8F0),
+                                    ),
+                                    color: Colors.white,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.codproduto,
+                                        style: const TextStyle(
+                                          color: Color(0xFF64748B),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item.produto,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(0xFFBBD2F1),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${_formatarQuantidade(item.qtdeSeparada)} / ${_formatarQuantidade(item.qtdeTotal)} un',
+                                          style: const TextStyle(
+                                            color: Color(0xFF2E67B0),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                           ],
-                        ),
-                        const SizedBox(height: 4),
-                        LinearProgressIndicator(
-                          value: tarefa.progresso / 100,
-                          minHeight: 8,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
