@@ -500,6 +500,8 @@ class Separacao {
     required this.separador,
     required this.status,
     required this.progresso,
+    this.dataInicio,
+    this.dataFim,
   });
 
   final String chave;
@@ -510,6 +512,8 @@ class Separacao {
   final String separador;
   final String status;
   final double progresso;
+  final DateTime? dataInicio;
+  final DateTime? dataFim;
 
   Separacao copyWith({double? progresso}) {
     return Separacao(
@@ -521,7 +525,18 @@ class Separacao {
       separador: separador,
       status: status,
       progresso: progresso ?? this.progresso,
+      dataInicio: dataInicio,
+      dataFim: dataFim,
     );
+  }
+
+  static DateTime? _parseData(dynamic valor) {
+    final texto = (valor ?? '').toString().trim();
+    if (texto.isEmpty) {
+      return null;
+    }
+
+    return DateTime.tryParse(texto)?.toLocal();
   }
 
   static String normalizarStatus(dynamic status) {
@@ -545,6 +560,8 @@ class Separacao {
       separador: (json['separador'] ?? '').toString(),
       status: normalizarStatus(json['status']),
       progresso: double.tryParse((json['progresso'] ?? 0).toString()) ?? 0,
+      dataInicio: _parseData(json['data_inicio']),
+      dataFim: _parseData(json['data_fim']),
     );
   }
 }
@@ -609,6 +626,13 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   final Set<String> _itensCarregando = {};
   final Set<String> _finalizando = {};
   final Map<String, String> _erroItens = {};
+
+  bool _ehHoje(DateTime data) {
+    final hoje = DateTime.now();
+    return data.year == hoje.year &&
+        data.month == hoje.month &&
+        data.day == hoje.day;
+  }
 
   @override
   void initState() {
@@ -898,7 +922,8 @@ class _SeparacaoScreenState extends State<SeparacaoScreen> {
   List<Separacao> get _filtradas {
     return _tarefas.where((tarefa) {
       final porAba = switch (_aba) {
-        'F' => tarefa.status == 'F',
+        'F' =>
+          tarefa.status == 'F' && _ehHoje(tarefa.dataFim ?? tarefa.dataInicio ?? DateTime(0)),
         _ => tarefa.status == 'A',
       };
 
