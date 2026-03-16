@@ -308,8 +308,8 @@ const PainelSaida: React.FC = () => {
           [key]: prev[key].map((end) =>
             end.codendereco === codendereco ? { ...end, marcado: false, qtde_marcada: undefined } : end,
           ),
-        }
-      })
+          }
+        })
 
       // Atualizar também o array de marcados
       setMarcados((prev) =>
@@ -377,8 +377,8 @@ const PainelSaida: React.FC = () => {
           [key]: prev[key].map((end) =>
             end.codendereco === codendereco ? { ...end, marcado: true, qtde_marcada: qtde } : end,
           ),
-        }
-      })
+          }
+        })
 
       // Adicionar ao array de marcados
       setMarcados((prev) => [...prev, novoMarcado])
@@ -404,8 +404,8 @@ const PainelSaida: React.FC = () => {
           [key]: prev[key].map((end) =>
             end.codendereco === codendereco ? { ...end, marcado: false, qtde_marcada: undefined } : end,
           ),
-        }
-      })
+          }
+        })
 
       // Remover do array de marcados
       setMarcados((prev) =>
@@ -430,8 +430,8 @@ const PainelSaida: React.FC = () => {
           ...end,
           marcado: !!enderecoMarcado,
           qtde_marcada: enderecoMarcado ? enderecoMarcado.quantidade : undefined,
-        }
-      })
+          }
+        })
 
       setEnderecosPorProduto((prev) => ({
         ...prev,
@@ -777,16 +777,18 @@ const PainelSaida: React.FC = () => {
 
       const chavesOrdenadas = preNotasFiltradas.filter((pn) => selecionadasParaImpressao.has(pn.chave)).map((pn) => pn.chave)
 
-      const notas = await Promise.all(chavesOrdenadas.map((chave) => api.get(`/painel-saida/${chave}/imprimir`)))
+      const respostaLote = await api.post("/painel-saida/imprimir-lote", { chaves: chavesOrdenadas })
+      const dadosPorChave = respostaLote.data?.dadosPorChave || {}
 
-      const blocos = notas.map((notaResponse, index) => {
-        const chave = chavesOrdenadas[index]
-        const notaData = notaResponse.data
-        const meiaPagina = podeImprimirEmMeiaPagina(notaData)
+      const blocos = chavesOrdenadas
+        .map((chave) => ({ chave, notaData: dadosPorChave[chave] }))
+        .filter((item) => Boolean(item.notaData))
+        .map(({ chave, notaData }) => {
+          const meiaPagina = podeImprimirEmMeiaPagina(notaData)
 
-        return {
-          meiaPagina,
-          html: `<div class="prenota-bloco ${meiaPagina ? "prenota-meia-pagina" : "prenota-pagina-cheia"}">${renderToStaticMarkup(
+          return {
+            meiaPagina,
+            html: `<div class="prenota-bloco ${meiaPagina ? "prenota-meia-pagina" : "prenota-pagina-cheia"}">${renderToStaticMarkup(
             <ImpressaoPreNota
               notaData={notaData}
               config={config}
@@ -796,8 +798,8 @@ const PainelSaida: React.FC = () => {
               ocultarTituloProdutos
             />,
           )}</div>`,
-        }
-      })
+          }
+        })
 
       const paginas: string[] = []
       let paginaAtual: string[] = []
@@ -822,8 +824,8 @@ const PainelSaida: React.FC = () => {
           paginas.push(`<div class="pagina-a4">${paginaAtual.join("\n")}</div>`)
           paginaAtual = []
           meiaPaginaCount = 0
-        }
-      })
+          }
+        })
 
       if (paginaAtual.length > 0) {
         paginas.push(`<div class="pagina-a4">${paginaAtual.join("\n")}</div>`)
