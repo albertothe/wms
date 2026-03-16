@@ -58,11 +58,18 @@ type LinhaEnderecoEstoque = {
   apto: string
 }
 
-const montarDadosImpressaoPorChave = async (chaves: string[]) => {
+const montarDadosImpressaoPorChave = async (
+  chaves: string[],
+  options?: {
+    incluirEnderecosEstoque?: boolean
+  },
+) => {
   const chavesLimpas = [...new Set(chaves.map((chave) => chave.trim()).filter(Boolean))]
   if (chavesLimpas.length === 0) return {}
 
-  const capasResult = await productPool.query<LinhaCapa>(
+  const incluirEnderecosEstoque = options?.incluirEnderecosEstoque !== false
+
+  const capasPromise = productPool.query<LinhaCapa>(
     `
       SELECT DISTINCT ON (TRIM(chave))
         data,
@@ -81,7 +88,7 @@ const montarDadosImpressaoPorChave = async (chaves: string[]) => {
     [chavesLimpas],
   )
 
-  const produtosResult = await productPool.query<LinhaProduto>(
+  const produtosPromise = productPool.query<LinhaProduto>(
     `
       SELECT
         TRIM(p.chave) AS chave,
@@ -102,7 +109,7 @@ const montarDadosImpressaoPorChave = async (chaves: string[]) => {
     [chavesLimpas],
   )
 
-  const enderecosMarcadosResult = await productPool.query<LinhaEnderecoMarcado>(
+  const enderecosMarcadosPromise = productPool.query<LinhaEnderecoMarcado>(
     `
       SELECT
         TRIM(em.chave) AS chave,
@@ -121,8 +128,9 @@ const montarDadosImpressaoPorChave = async (chaves: string[]) => {
     [chavesLimpas],
   )
 
-  const enderecosEstoqueResult = await productPool.query<LinhaEnderecoEstoque>(
-    `
+  const enderecosEstoquePromise = incluirEnderecosEstoque
+    ? productPool.query<LinhaEnderecoEstoque>(
+        `
       SELECT
         TRIM(p.chave) AS chave,
         el.codproduto,
@@ -142,8 +150,16 @@ const montarDadosImpressaoPorChave = async (chaves: string[]) => {
       JOIN wms_enderecos e ON el.codendereco = e.codendereco
       ORDER BY p.chave, el.codproduto, e.rua, e.predio, e.andar, e.apto
     `,
-    [chavesLimpas],
-  )
+        [chavesLimpas],
+      )
+    : Promise.resolve({ rows: [] } as { rows: LinhaEnderecoEstoque[] })
+
+  const [capasResult, produtosResult, enderecosMarcadosResult, enderecosEstoqueResult] = await Promise.all([
+    capasPromise,
+    produtosPromise,
+    enderecosMarcadosPromise,
+    enderecosEstoquePromise,
+  ])
 
   const produtosPorChave = new Map<string, LinhaProduto[]>()
   produtosResult.rows.forEach((produto) => {
@@ -331,7 +347,8 @@ router.get("/:chave/imprimir", async (req, res) => {
 router.post("/imprimir-lote", async (req, res) => {
   try {
     const chaves = Array.isArray(req.body?.chaves) ? req.body.chaves : []
-    const dadosPorChave = await montarDadosImpressaoPorChave(chaves)
+    const incluirEnderecosEstoque = req.body?.incluirEnderecosEstoque !== false
+    const dadosPorChave = await montarDadosImpressaoPorChave(chaves, { incluirEnderecosEstoque })
     res.json({ dadosPorChave })
   } catch (error) {
     logger.error("Erro ao buscar dados para impressão em lote:", error)
