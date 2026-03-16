@@ -777,7 +777,10 @@ const PainelSaida: React.FC = () => {
 
       const chavesOrdenadas = preNotasFiltradas.filter((pn) => selecionadasParaImpressao.has(pn.chave)).map((pn) => pn.chave)
 
-      const respostaLote = await api.post("/painel-saida/imprimir-lote", { chaves: chavesOrdenadas })
+      const respostaLote = await api.post("/painel-saida/imprimir-lote", {
+        chaves: chavesOrdenadas,
+        incluirEnderecosEstoque: config.modeloImpressao === 1,
+      })
       const dadosPorChave = respostaLote.data?.dadosPorChave || {}
 
       const blocos = chavesOrdenadas
