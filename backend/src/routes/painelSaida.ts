@@ -10,6 +10,230 @@ interface RequestComUsuario extends Request {
 
 const router = express.Router()
 
+type LinhaCapa = {
+  data: string
+  codloja: string
+  op: string
+  prenota: string
+  np: string
+  separacao: string
+  destinario: string
+  chave: string
+  observacao: string
+}
+
+type LinhaProduto = {
+  chave: string
+  codproduto: string
+  produto: string
+  qtde_saida: string | number
+  vlr_unitario: string | number
+  vlr_total: string | number
+  controla_lote: string
+  lote: string
+  unidade: string
+}
+
+type LinhaEnderecoMarcado = {
+  chave: string
+  codproduto: string
+  lote: string
+  codendereco: string
+  quantidade: string | number
+  rua: string
+  predio: string
+  andar: string
+  apto: string
+}
+
+type LinhaEnderecoEstoque = {
+  chave: string
+  codproduto: string
+  lote: string
+  codendereco: string
+  quantidade: string | number
+  rua: string
+  predio: string
+  andar: string
+  apto: string
+}
+
+const montarDadosImpressaoPorChave = async (chaves: string[]) => {
+  const chavesLimpas = [...new Set(chaves.map((chave) => chave.trim()).filter(Boolean))]
+  if (chavesLimpas.length === 0) return {}
+
+  const capasResult = await productPool.query<LinhaCapa>(
+    `
+      SELECT DISTINCT ON (TRIM(chave))
+        data,
+        codloja,
+        op,
+        prenota,
+        np,
+        separacao,
+        destinario,
+        chave,
+        observacao
+      FROM vs_wms_fpainel_saida
+      WHERE TRIM(chave) = ANY($1)
+      ORDER BY TRIM(chave), data DESC
+    `,
+    [chavesLimpas],
+  )
+
+  const produtosResult = await productPool.query<LinhaProduto>(
+    `
+      SELECT
+        TRIM(p.chave) AS chave,
+        p.codproduto,
+        p.produto,
+        p.qtde_saida,
+        p.vlr_unitario,
+        p.vlr_total,
+        p.controla_lote,
+        p.lote,
+        p.unidade
+      FROM vs_wms_fpainel_saida p
+      WHERE TRIM(p.chave) = ANY($1)
+      GROUP BY
+        TRIM(p.chave), p.codproduto, p.produto, p.qtde_saida,
+        p.vlr_unitario, p.vlr_total, p.controla_lote, p.lote, p.unidade
+    `,
+    [chavesLimpas],
+  )
+
+  const enderecosMarcadosResult = await productPool.query<LinhaEnderecoMarcado>(
+    `
+      SELECT
+        TRIM(em.chave) AS chave,
+        em.codproduto,
+        em.lote,
+        em.codendereco,
+        em.quantidade,
+        e.rua,
+        e.predio,
+        e.andar,
+        e.apto
+      FROM wms_endereco_marcado em
+      JOIN wms_enderecos e ON em.codendereco = e.codendereco
+      WHERE TRIM(em.chave) = ANY($1)
+    `,
+    [chavesLimpas],
+  )
+
+  const enderecosEstoqueResult = await productPool.query<LinhaEnderecoEstoque>(
+    `
+      SELECT
+        TRIM(p.chave) AS chave,
+        el.codproduto,
+        el.lote,
+        el.codendereco,
+        el.quantidade,
+        e.rua,
+        e.predio,
+        e.andar,
+        e.apto
+      FROM (
+        SELECT DISTINCT TRIM(chave) AS chave, codproduto
+        FROM vs_wms_fpainel_saida
+        WHERE TRIM(chave) = ANY($1)
+      ) p
+      JOIN wms_estoque_local el ON el.codproduto = p.codproduto
+      JOIN wms_enderecos e ON el.codendereco = e.codendereco
+      ORDER BY p.chave, el.codproduto, e.rua, e.predio, e.andar, e.apto
+    `,
+    [chavesLimpas],
+  )
+
+  const produtosPorChave = new Map<string, LinhaProduto[]>()
+  produtosResult.rows.forEach((produto) => {
+    const lista = produtosPorChave.get(produto.chave) || []
+    lista.push(produto)
+    produtosPorChave.set(produto.chave, lista)
+  })
+
+  const enderecosMarcadosPorChave = new Map<string, LinhaEnderecoMarcado[]>()
+  enderecosMarcadosResult.rows.forEach((endereco) => {
+    const lista = enderecosMarcadosPorChave.get(endereco.chave) || []
+    lista.push(endereco)
+    enderecosMarcadosPorChave.set(endereco.chave, lista)
+  })
+
+  const enderecosEstoquePorChave = new Map<string, LinhaEnderecoEstoque[]>()
+  enderecosEstoqueResult.rows.forEach((endereco) => {
+    const lista = enderecosEstoquePorChave.get(endereco.chave) || []
+    lista.push(endereco)
+    enderecosEstoquePorChave.set(endereco.chave, lista)
+  })
+
+  const dadosPorChave = Object.fromEntries(
+    capasResult.rows.map((capa) => {
+      const chave = capa.chave.trim()
+      const produtos = produtosPorChave.get(chave) || []
+      const enderecosMarcados = enderecosMarcadosPorChave.get(chave) || []
+      const enderecosEstoque = enderecosEstoquePorChave.get(chave) || []
+
+      const totalQuantidade = produtos.reduce((acc, prod) => acc + Number(prod.qtde_saida), 0)
+      const totalValor = produtos.reduce((acc, prod) => acc + Number(prod.vlr_total), 0)
+
+      return [
+        chave,
+        {
+          capa: {
+            numero: capa.prenota,
+            emitente: capa.destinario,
+            dataEmissao: capa.data,
+            dataEntrada: capa.data,
+            observacoes: capa.observacao,
+            loja: capa.codloja,
+            op: capa.op,
+            separacao: capa.separacao,
+            np: capa.np,
+          },
+          produtos: produtos.map((prod) => ({
+            codigo: prod.codproduto,
+            descricao: prod.produto,
+            unidade: prod.unidade || "UN",
+            quantidade: Number(prod.qtde_saida),
+            valorUnitario: Number(prod.vlr_unitario),
+            valorTotal: Number(prod.vlr_total),
+            lote: prod.lote || "-",
+            controla_lote: prod.controla_lote,
+          })),
+          enderecos: enderecosMarcados.map((end) => ({
+            codigo: end.codendereco,
+            rua: end.rua,
+            predio: end.predio,
+            andar: end.andar,
+            apto: end.apto,
+            quantidade: Number(end.quantidade),
+            codproduto: end.codproduto,
+            lote: end.lote,
+            marcado: true,
+          })),
+          enderecosEstoque: enderecosEstoque.map((end) => ({
+            codigo: end.codendereco,
+            rua: end.rua,
+            predio: end.predio,
+            andar: end.andar,
+            apto: end.apto,
+            quantidade: Number(end.quantidade),
+            codproduto: end.codproduto,
+            lote: end.lote,
+            marcado: false,
+          })),
+          totais: {
+            quantidade: totalQuantidade,
+            valor: totalValor,
+          },
+        },
+      ]
+    }),
+  )
+
+  return dadosPorChave
+}
+
 // Rota para listar capas (sem os produtos)
 router.get("/", async (req, res) => {
   try {
@@ -89,165 +313,11 @@ router.get("/:chave/imprimir", async (req, res) => {
   try {
     const { chave } = req.params
     logger.debug("Buscando dados para impressão da pré-nota com chave:", chave)
+    const dadosPorChave = await montarDadosImpressaoPorChave([chave])
+    const dadosImpressao = dadosPorChave[chave.trim()]
 
-    // 1. Buscar dados da capa da pré-nota
-    const capaPrenota = await productPool.query(
-      `
-      SELECT DISTINCT
-        data,
-        codloja,
-        op,
-        prenota,
-        np,
-        tipo,
-        status,
-        separacao,
-        coddestinario,
-        destinario,
-        chave,
-        observacao
-      FROM vs_wms_fpainel_saida
-      WHERE TRIM(chave) = $1
-      LIMIT 1
-    `,
-      [chave],
-    )
-
-    if (capaPrenota.rows.length === 0) {
+    if (!dadosImpressao) {
       return res.status(404).json({ erro: "Pré-nota não encontrada" })
-    }
-
-    const capa = capaPrenota.rows[0]
-
-    // 2. Buscar produtos da pré-nota
-    const produtos = await productPool.query(
-      `
-      SELECT 
-        p.codproduto, 
-        p.produto, 
-        p.qtde_saida, 
-        p.vlr_unitario, 
-        p.vlr_total, 
-        p.controla_lote,
-        p.lote,
-        p.unidade
-      FROM 
-        vs_wms_fpainel_saida p
-      WHERE 
-        p.chave = $1
-      GROUP BY 
-        p.codproduto, p.produto, p.qtde_saida, p.vlr_unitario, p.vlr_total, p.controla_lote, p.lote, p.unidade
-    `,
-      [chave],
-    )
-
-    // 3. Buscar endereços marcados para cada produto
-    const enderecosMarcados = await productPool.query(
-      `
-      SELECT 
-        em.codproduto, 
-        em.lote, 
-        em.codendereco, 
-        em.quantidade,
-        e.rua,
-        e.predio,
-        e.andar,
-        e.apto
-      FROM 
-        wms_endereco_marcado em
-      JOIN 
-        wms_enderecos e ON em.codendereco = e.codendereco
-      WHERE 
-        em.chave = $1
-    `,
-      [chave],
-    )
-
-    // 4. NOVO: Buscar todos os endereços disponíveis no estoque para cada produto
-    const produtosIds = produtos.rows.map((p) => p.codproduto)
-
-    let enderecosEstoque = []
-    if (produtosIds.length > 0) {
-      const enderecosResult = await productPool.query(
-        `
-        SELECT 
-          el.codproduto,
-          el.lote,
-          el.codendereco,
-          el.quantidade,
-          e.rua,
-          e.predio,
-          e.andar,
-          e.apto
-        FROM 
-          wms_estoque_local el
-        JOIN 
-          wms_enderecos e ON el.codendereco = e.codendereco
-        WHERE 
-          el.codproduto = ANY($1)
-        ORDER BY
-          el.codproduto, e.rua, e.predio, e.andar, e.apto
-        `,
-        [produtosIds],
-      )
-
-      enderecosEstoque = enderecosResult.rows
-    }
-
-    // 5. Calcular totais
-    const totalQuantidade = produtos.rows.reduce((acc, prod) => acc + Number(prod.qtde_saida), 0)
-    const totalValor = produtos.rows.reduce((acc, prod) => acc + Number(prod.vlr_total), 0)
-
-    // 6. Formatar dados para impressão
-    const dadosImpressao = {
-      capa: {
-        numero: capa.prenota,
-        emitente: capa.destinario,
-        dataEmissao: capa.data,
-        dataEntrada: capa.data, // Usar a mesma data como exemplo
-        //observacoes: `Pré-nota: ${capa.prenota}, Nota: ${capa.np}, Tipo: ${capa.tipo}, Status: ${capa.status}`,
-        observacoes: capa.observacao,
-        loja: capa.codloja,
-        op: capa.op,
-        separacao: capa.separacao,
-        np: capa.np
-      },
-      produtos: produtos.rows.map((prod) => ({
-        codigo: prod.codproduto,
-        descricao: prod.produto,
-        unidade: prod.unidade || "UN",
-        quantidade: Number(prod.qtde_saida),
-        valorUnitario: Number(prod.vlr_unitario),
-        valorTotal: Number(prod.vlr_total),
-        lote: prod.lote || "-",
-        controla_lote: prod.controla_lote,
-      })),
-      enderecos: enderecosMarcados.rows.map((end) => ({
-        codigo: end.codendereco,
-        rua: end.rua,
-        predio: end.predio,
-        andar: end.andar,
-        apto: end.apto,
-        quantidade: Number(end.quantidade),
-        codproduto: end.codproduto,
-        lote: end.lote,
-        marcado: true,
-      })),
-      enderecosEstoque: enderecosEstoque.map((end) => ({
-        codigo: end.codendereco,
-        rua: end.rua,
-        predio: end.predio,
-        andar: end.andar,
-        apto: end.apto,
-        quantidade: Number(end.quantidade),
-        codproduto: end.codproduto,
-        lote: end.lote,
-        marcado: false,
-      })),
-      totais: {
-        quantidade: totalQuantidade,
-        valor: totalValor,
-      },
     }
 
     logger.info("Dados para impressão preparados com sucesso")
@@ -255,6 +325,17 @@ router.get("/:chave/imprimir", async (req, res) => {
   } catch (error) {
     logger.error("Erro ao buscar dados para impressão:", error)
     res.status(500).json({ erro: "Erro ao buscar dados para impressão" })
+  }
+})
+
+router.post("/imprimir-lote", async (req, res) => {
+  try {
+    const chaves = Array.isArray(req.body?.chaves) ? req.body.chaves : []
+    const dadosPorChave = await montarDadosImpressaoPorChave(chaves)
+    res.json({ dadosPorChave })
+  } catch (error) {
+    logger.error("Erro ao buscar dados para impressão em lote:", error)
+    res.status(500).json({ erro: "Erro ao buscar dados para impressão em lote" })
   }
 })
 
