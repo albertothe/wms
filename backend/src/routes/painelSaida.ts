@@ -254,7 +254,7 @@ const montarDadosImpressaoPorChave = async (
 router.get("/", async (req, res) => {
   try {
     const query = `
-      SELECT DISTINCT
+      SELECT DISTINCT ON (TRIM(p.chave))
         p.data,
         p.codloja,
         p.op,
@@ -266,7 +266,7 @@ router.get("/", async (req, res) => {
         p.separacao,
         p.coddestinario,
         p.destinario,
-        p.chave,
+        TRIM(p.chave) AS chave,
         s.status AS separacao_status,
         s.usuario_atribuido AS separador
       FROM vs_wms_fpainel_saida p
