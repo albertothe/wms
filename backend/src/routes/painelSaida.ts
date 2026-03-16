@@ -272,7 +272,7 @@ router.get("/", async (req, res) => {
       FROM vs_wms_fpainel_saida p
       LEFT JOIN wms_separacoes s
         ON s.chave::text = p.chave::text
-      ORDER BY p.data DESC
+      ORDER BY TRIM(p.chave) DESC, p.data DESC
     `
     const result = await productPool.query(query)
     res.json(result.rows)
