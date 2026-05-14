@@ -294,8 +294,8 @@ router.post("/finalizar", async (req, res) => {
 
         await productPool.query(
           `INSERT INTO wms_entregas (chave, codloja, np, destinario, endereco, cidade_uf)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (chave) DO NOTHING`,
+           SELECT $1, $2, $3, $4, $5, $6
+           WHERE NOT EXISTS (SELECT 1 FROM wms_entregas WHERE chave = $1)`,
           [
             separacao.chave,
             separacao.codloja,
