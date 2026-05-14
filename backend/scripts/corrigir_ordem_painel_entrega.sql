@@ -1,12 +1,23 @@
--- Corrige a posição do módulo Painel Entrega no menu:
--- coloca logo após o Painel Separação.
--- Executar apenas se o módulo já foi criado pelo script criar_painel_entrega.sql.
+-- Reposiciona o módulo Painel Entrega logo após o Painel Separação no menu.
+-- Executar no banco do WMS.
 
+-- Passo 1: abre uma posição logo após o Painel Separação
 UPDATE wms_modulos
 SET ordem = ordem + 1
-WHERE ordem > (SELECT ordem FROM wms_modulos WHERE rota = 'painelseparacao')
-  AND rota <> 'painelentrega';
+WHERE ordem > (
+    SELECT ordem FROM wms_modulos
+    WHERE nome ILIKE '%separa%'
+    ORDER BY ordem DESC
+    LIMIT 1
+)
+AND nome NOT ILIKE '%entrega%';
 
+-- Passo 2: posiciona o Painel Entrega na posição aberta
 UPDATE wms_modulos
-SET ordem = (SELECT ordem FROM wms_modulos WHERE rota = 'painelseparacao') + 1
-WHERE rota = 'painelentrega';
+SET ordem = (
+    SELECT ordem FROM wms_modulos
+    WHERE nome ILIKE '%separa%'
+    ORDER BY ordem DESC
+    LIMIT 1
+) + 1
+WHERE nome ILIKE '%entrega%';

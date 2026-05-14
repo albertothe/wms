@@ -294,8 +294,8 @@ router.post("/finalizar", async (req, res) => {
 
         await productPool.query(
           `INSERT INTO wms_entregas (chave, codloja, np, destinario, endereco, cidade_uf)
-           SELECT $1, $2, $3, $4, $5, $6
-           WHERE NOT EXISTS (SELECT 1 FROM wms_entregas WHERE chave = $1)`,
+           SELECT $1::varchar(10), $2::integer, $3::varchar(20), $4::varchar(100), $5::varchar(200), $6::varchar(100)
+           WHERE NOT EXISTS (SELECT 1 FROM wms_entregas WHERE chave::text = $1::text)`,
           [
             separacao.chave,
             separacao.codloja,
@@ -364,6 +364,7 @@ router.get("/", async (req, res) => {
          FROM wms_separacoes s
          WHERE ($1::varchar(50) IS NULL OR s.usuario_atribuido::text = $1::text)
            AND ($2::varchar(15) IS NULL OR s.tipoentrega::text = $2::text)
+           AND (s.status <> 'F' OR s.data_fim >= NOW() - INTERVAL '3 days')
        ),
        itens_por_chave AS (
          SELECT
