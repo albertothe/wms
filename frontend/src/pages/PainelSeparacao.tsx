@@ -88,6 +88,7 @@ const PainelSeparacao: React.FC = () => {
   const [detalhesExpandidos, setDetalhesExpandidos] = useState<Record<string, boolean>>({})
   const [itensPorChave, setItensPorChave] = useState<Record<string, ItemSeparacao[]>>({})
   const [carregandoItens, setCarregandoItens] = useState<Record<string, boolean>>({})
+  const [separandoTudo, setSeparandoTudo] = useState<Record<string, boolean>>({})
 
   const normalizarQuantidade = (valor: number, maximo: number) => {
     if (!Number.isFinite(valor)) return 0
@@ -192,6 +193,18 @@ const PainelSeparacao: React.FC = () => {
     setDetalhesExpandidos((prev) => ({ ...prev, [chave]: !estaAberto }))
     if (!estaAberto && !itensPorChave[chave]) {
       await buscarItens(chave)
+    }
+  }
+
+  const separarTudo = async (chave: string) => {
+    setSeparandoTudo((prev) => ({ ...prev, [chave]: true }))
+    try {
+      await api.post("/separacao/separar-tudo", { chave })
+      await Promise.all([buscarItens(chave), buscarSeparacoes()])
+    } catch (error) {
+      console.error("Erro ao separar todos os itens:", error)
+    } finally {
+      setSeparandoTudo((prev) => ({ ...prev, [chave]: false }))
     }
   }
 
@@ -367,9 +380,24 @@ const PainelSeparacao: React.FC = () => {
                       <TableCell colSpan={11} sx={{ p: 0, borderBottom: 0 }}>
                         <Collapse in={Boolean(detalhesExpandidos[item.chave])} timeout="auto" unmountOnExit>
                           <Box sx={{ p: 2, backgroundColor: "#f9fafb" }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                              Conferência por produto
-                            </Typography>
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                Conferência por produto
+                              </Typography>
+                              {item.status !== "F" && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="primary"
+                                  disabled={Boolean(separandoTudo[item.chave])}
+                                  onClick={() => {
+                                    void separarTudo(item.chave)
+                                  }}
+                                >
+                                  {separandoTudo[item.chave] ? "Separando..." : "Separar Tudo"}
+                                </Button>
+                              )}
+                            </Box>
                             {carregandoItens[item.chave] ? (
                               <Box display="flex" justifyContent="center" py={2}>
                                 <CircularProgress size={22} />

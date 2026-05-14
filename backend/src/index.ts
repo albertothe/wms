@@ -13,6 +13,7 @@ import dashboardRoutes from "./routes/dashboard"
 import impressoraZebraRoutes from "./routes/impressoraZebra"
 import separacaoRoutes from "./routes/separacao"
 import painelSeparacaoPublicoRoutes from "./routes/painelSeparacaoPublico"
+import painelEntregaRoutes from "./routes/painelEntrega"
 import { logger } from "./utils/logger"
 
 const app = express()
@@ -60,6 +61,7 @@ app.use("/controle-acesso", controleAcessoRoutes)
 app.use("/dashboard", dashboardRoutes)
 app.use("/impressora/zebra", impressoraZebraRoutes)
 app.use("/separacao", separacaoRoutes)
+app.use("/painel-entrega", painelEntregaRoutes)
 
 // Iniciar o servidor
 app.listen(PORT, () => {
