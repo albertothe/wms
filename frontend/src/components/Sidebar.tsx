@@ -56,6 +56,7 @@ const routeIconMap: Record<string, React.ReactElement> = {
     painelentrada: <ShoppingCartIcon />,
     painelsaida: <LocalShippingIcon />,
     painelseparacao: <AssignmentIcon />,
+    painelentrega: <LocalShippingIcon />,
     relatorios: <BarChartIcon />,
     estoque: <StorageIcon />,
     impressaoconferencia: <PrintIcon />,

@@ -204,6 +204,47 @@ router.post("/item", async (req, res) => {
   }
 })
 
+router.post("/separar-tudo", async (req, res) => {
+  const { chave, codloja, np } = req.body
+  const chaveNormalizada = normalizarTextoOpcional(chave)
+  const codlojaNormalizada = normalizarInteiroOpcional(codloja)
+  const npNormalizado = normalizarTextoOpcional(np)
+
+  if (!chaveNormalizada && (codlojaNormalizada == null || !npNormalizado)) {
+    return res.status(400).json({ erro: "chave ou codloja e np são obrigatórios" })
+  }
+
+  try {
+    const separacao = await productPool.query(
+      `SELECT status FROM wms_separacoes
+       WHERE chave::text = $1::text OR (codloja = $2 AND np::text = $3::text)
+       LIMIT 1`,
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
+    )
+
+    if (separacao.rows[0]?.status === "F") {
+      return res.status(409).json({ erro: "Separação finalizada não pode ser alterada" })
+    }
+
+    const result = await productPool.query(
+      `UPDATE wms_separacao_itens
+       SET qtde_separada = qtde_total
+       WHERE chave::text = $1::text OR (codloja = $2 AND np::text = $3::text)
+       RETURNING *`,
+      [chaveNormalizada, codlojaNormalizada, npNormalizado],
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: "Itens não encontrados" })
+    }
+
+    res.json({ mensagem: "Todos os itens separados", itens: result.rowCount })
+  } catch (error) {
+    logger.error("Erro ao separar todos os itens:", error)
+    res.status(500).json({ erro: "Erro ao separar todos os itens" })
+  }
+})
+
 router.post("/finalizar", async (req, res) => {
   const { chave, codloja, np } = req.body
   const chaveNormalizada = normalizarTextoOpcional(chave)
@@ -240,7 +281,36 @@ router.post("/finalizar", async (req, res) => {
       return res.status(404).json({ erro: "Separação não encontrada" })
     }
 
-    res.json({ mensagem: "Separação finalizada", separacao: result.rows[0] })
+    const separacao = result.rows[0]
+
+    if (separacao.tipoentrega === "LojaEntrega") {
+      try {
+        const dadosView = await productPool.query(
+          `SELECT MAX(endereco) AS endereco, MAX(cidade_uf) AS cidade_uf
+           FROM vs_wms_fpainel_saida
+           WHERE chave = $1`,
+          [separacao.chave],
+        )
+
+        await productPool.query(
+          `INSERT INTO wms_entregas (chave, codloja, np, destinario, endereco, cidade_uf)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (chave) DO NOTHING`,
+          [
+            separacao.chave,
+            separacao.codloja,
+            separacao.np,
+            separacao.destinario,
+            dadosView.rows[0]?.endereco ?? null,
+            dadosView.rows[0]?.cidade_uf ?? null,
+          ],
+        )
+      } catch (entregaError) {
+        logger.error("Erro ao registrar entrega após finalizar separação:", entregaError)
+      }
+    }
+
+    res.json({ mensagem: "Separação finalizada", separacao })
   } catch (error) {
     logger.error("Erro ao finalizar separação:", error)
     res.status(500).json({ erro: "Erro ao finalizar separação" })

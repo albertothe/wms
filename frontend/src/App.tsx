@@ -18,6 +18,7 @@ import PainelSaida from "./pages/PainelSaida"
 import PainelSeparacao from "./pages/PainelSeparacao"
 import ImprimirEtiquetasEnderecos from "./pages/ImprimirEtiquetasEnderecos"
 import PainelSeparacaoTV from "./pages/PainelSeparacaoTV"
+import PainelEntrega from "./pages/PainelEntrega"
 
 const theme = createTheme(
   {
@@ -133,6 +134,14 @@ function App() {
               element={
                 <ProtectedRoute requiredPermission={{ rota: "painelseparacao", tipo: "visualizar" }}>
                   <PainelSeparacao />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/painelentrega"
+              element={
+                <ProtectedRoute requiredPermission={{ rota: "painelentrega", tipo: "visualizar" }}>
+                  <PainelEntrega />
                 </ProtectedRoute>
               }
             />
