@@ -90,11 +90,27 @@ const PainelEntrega: React.FC = () => {
     }
   }, [])
 
-  useEffect(() => {
-    buscarEntregas()
-    const interval = setInterval(buscarEntregas, 30000)
-    return () => clearInterval(interval)
+  // Roda em background sem bloquear o carregamento dos dados
+  const sincronizarNF = useCallback(async () => {
+    try {
+      await api.post("/painel-entrega/sincronizar-nf")
+      await buscarEntregas()
+    } catch {
+      // falha silenciosa — dado continua visível normalmente
+    }
   }, [buscarEntregas])
+
+  useEffect(() => {
+    void buscarEntregas()
+    // NF sync em background ao abrir e a cada 5 minutos
+    void sincronizarNF()
+    const intervalDados = setInterval(() => void buscarEntregas(), 30000)
+    const intervalNF = setInterval(() => void sincronizarNF(), 300000)
+    return () => {
+      clearInterval(intervalDados)
+      clearInterval(intervalNF)
+    }
+  }, [buscarEntregas, sincronizarNF])
 
   const entregasFiltradas = useMemo(() => {
     return entregas.filter((item) => {
