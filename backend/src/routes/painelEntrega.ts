@@ -4,7 +4,6 @@ import { logger } from "../utils/logger"
 
 const router = express.Router()
 
-// Transições de status permitidas por ação do usuário
 const TRANSICOES_VALIDAS: Record<string, string> = {
   SaiuEntrega: "NFEmitida",
   Entregue: "SaiuEntrega",
@@ -15,26 +14,9 @@ const CAMPO_DATA: Record<string, string> = {
   Entregue: "data_entregue",
 }
 
+// Leitura pura — sem tocar na view legada, sem locks
 router.get("/", async (_req, res) => {
   try {
-    // Só consulta a view pesada quando há registros em AguardandoNF
-    const temPendentes = await productPool.query(
-      `SELECT 1 FROM wms_entregas WHERE status = 'AguardandoNF' LIMIT 1`,
-    )
-
-    if (temPendentes.rows.length > 0) {
-      await productPool.query(
-        `UPDATE wms_entregas
-         SET status = 'NFEmitida', data_nf = NOW()
-         WHERE status = 'AguardandoNF'
-           AND NOT EXISTS (
-             SELECT 1
-             FROM vs_wms_fpainel_saida ps
-             WHERE ps.chave::text = wms_entregas.chave::text
-           )`,
-      )
-    }
-
     const result = await productPool.query(
       `SELECT
          id, chave, codloja, np, destinario, endereco, cidade_uf,
@@ -50,6 +32,36 @@ router.get("/", async (_req, res) => {
   } catch (error) {
     logger.error("Erro ao buscar painel de entregas:", error)
     res.status(500).json({ erro: "Erro ao buscar entregas" })
+  }
+})
+
+// Detecção de NF emitida — chamado pelo frontend em background,
+// separado do polling de leitura para não bloquear a UI
+router.post("/sincronizar-nf", async (_req, res) => {
+  try {
+    const temPendentes = await productPool.query(
+      `SELECT 1 FROM wms_entregas WHERE status = 'AguardandoNF' LIMIT 1`,
+    )
+
+    if (temPendentes.rows.length === 0) {
+      return res.json({ atualizados: 0 })
+    }
+
+    const result = await productPool.query(
+      `UPDATE wms_entregas
+       SET status = 'NFEmitida', data_nf = NOW()
+       WHERE status = 'AguardandoNF'
+         AND NOT EXISTS (
+           SELECT 1
+           FROM vs_wms_fpainel_saida ps
+           WHERE ps.chave::text = wms_entregas.chave::text
+         )`,
+    )
+
+    res.json({ atualizados: result.rowCount ?? 0 })
+  } catch (error) {
+    logger.error("Erro ao sincronizar NF emitida:", error)
+    res.status(500).json({ erro: "Erro ao sincronizar NF" })
   }
 })
 
