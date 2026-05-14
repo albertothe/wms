@@ -72,15 +72,19 @@ const PainelEntrega: React.FC = () => {
   const { empresa, corTopo } = useAuth()
   const nomeEmpresa = empresa?.nome || "Sistema WMS"
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
   const [entregas, setEntregas] = useState<Entrega[]>([])
   const [filtro, setFiltro] = useState("")
   const [filtroStatus, setFiltroStatus] = useState("")
   const [atualizando, setAtualizando] = useState<Record<string, boolean>>({})
 
   const buscarEntregas = useCallback(async () => {
+    setErro(null)
     try {
       const response = await api.get("/painel-entrega")
       setEntregas(response.data)
+    } catch {
+      setErro("Não foi possível carregar as entregas. Verifique a conexão ou contate o suporte.")
     } finally {
       setCarregando(false)
     }
@@ -157,6 +161,25 @@ const PainelEntrega: React.FC = () => {
   }
 
   const colSpanTotal = 12
+
+  if (erro) {
+    return (
+      <Layout corTopo={corTopo} nomeEmpresa={nomeEmpresa}>
+        <Container maxWidth={false} sx={{ py: 3 }}>
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={() => { setCarregando(true); void buscarEntregas() }}>
+                Tentar novamente
+              </Button>
+            }
+          >
+            {erro}
+          </Alert>
+        </Container>
+      </Layout>
+    )
+  }
 
   return (
     <Layout corTopo={corTopo} nomeEmpresa={nomeEmpresa}>

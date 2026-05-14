@@ -17,17 +17,23 @@ const CAMPO_DATA: Record<string, string> = {
 
 router.get("/", async (_req, res) => {
   try {
-    // Detecta NF emitida: chaves que saíram da view do painel de saída
-    await productPool.query(
-      `UPDATE wms_entregas
-       SET status = 'NFEmitida', data_nf = NOW()
-       WHERE status = 'AguardandoNF'
-         AND NOT EXISTS (
-           SELECT 1
-           FROM vs_wms_fpainel_saida ps
-           WHERE ps.chave::text = wms_entregas.chave::text
-         )`,
+    // Só consulta a view pesada quando há registros em AguardandoNF
+    const temPendentes = await productPool.query(
+      `SELECT 1 FROM wms_entregas WHERE status = 'AguardandoNF' LIMIT 1`,
     )
+
+    if (temPendentes.rows.length > 0) {
+      await productPool.query(
+        `UPDATE wms_entregas
+         SET status = 'NFEmitida', data_nf = NOW()
+         WHERE status = 'AguardandoNF'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM vs_wms_fpainel_saida ps
+             WHERE ps.chave::text = wms_entregas.chave::text
+           )`,
+      )
+    }
 
     const result = await productPool.query(
       `SELECT
