@@ -101,6 +101,8 @@ const PainelSeparacao: React.FC = () => {
     try {
       const response = await api.get("/separacao")
       setSeparacoes(response.data)
+    } catch {
+      // Mantém os dados anteriores em caso de falha no polling
     } finally {
       setCarregando(false)
     }
