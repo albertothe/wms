@@ -20,9 +20,11 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
   alpha,
 } from "@mui/material"
+import { CheckCircle, Cancel } from "@mui/icons-material"
 import { Layout } from "../components/Layout"
 import { useAuth } from "../contexts/AuthContext"
 import api from "../services/api"
@@ -40,6 +42,8 @@ interface Entrega {
   data_nf: string | null
   data_saiu: string | null
   data_entregue: string | null
+  msg_saiu_enviada: boolean
+  msg_entregue_enviada: boolean
 }
 
 const STATUS_CONFIG: Record<Entrega["status"], { label: string; color: "warning" | "info" | "secondary" | "success" }> = {
@@ -53,6 +57,16 @@ const formatarData = (data: string | null): string => {
   if (!data) return "-"
   return new Date(data).toLocaleString("pt-BR")
 }
+
+const IconeMensagem = ({ enviada, tooltip }: { enviada: boolean; tooltip: string }) => (
+  <Tooltip title={tooltip} arrow>
+    {enviada ? (
+      <CheckCircle sx={{ fontSize: 18, color: "success.main" }} />
+    ) : (
+      <Cancel sx={{ fontSize: 18, color: "action.disabled" }} />
+    )}
+  </Tooltip>
+)
 
 const PainelEntrega: React.FC = () => {
   const { empresa, corTopo } = useAuth()
@@ -142,6 +156,8 @@ const PainelEntrega: React.FC = () => {
     return null
   }
 
+  const colSpanTotal = 12
+
   return (
     <Layout corTopo={corTopo} nomeEmpresa={nomeEmpresa}>
       <Container maxWidth={false} sx={{ py: 3 }}>
@@ -188,7 +204,17 @@ const PainelEntrega: React.FC = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>NF Emitida</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Saiu p/ Entrega</TableCell>
+                <TableCell sx={{ fontWeight: 600, width: 36, px: 0.5 }} align="center">
+                  <Tooltip title="Msg Saiu Enviada" arrow>
+                    <span>Msg</span>
+                  </Tooltip>
+                </TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Entregue</TableCell>
+                <TableCell sx={{ fontWeight: 600, width: 36, px: 0.5 }} align="center">
+                  <Tooltip title="Msg Entregue Enviada" arrow>
+                    <span>Msg</span>
+                  </Tooltip>
+                </TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Ação
                 </TableCell>
@@ -197,13 +223,13 @@ const PainelEntrega: React.FC = () => {
             <TableBody>
               {carregando ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={colSpanTotal} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : entregasFiltradas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">
+                  <TableCell colSpan={colSpanTotal} align="center">
                     <Alert severity="info">Nenhuma entrega encontrada.</Alert>
                   </TableCell>
                 </TableRow>
@@ -227,7 +253,19 @@ const PainelEntrega: React.FC = () => {
                     </TableCell>
                     <TableCell>{formatarData(item.data_nf)}</TableCell>
                     <TableCell>{formatarData(item.data_saiu)}</TableCell>
+                    <TableCell align="center" sx={{ px: 0.5 }}>
+                      <IconeMensagem
+                        enviada={item.msg_saiu_enviada}
+                        tooltip={item.msg_saiu_enviada ? "Mensagem de saída enviada" : "Mensagem de saída não enviada"}
+                      />
+                    </TableCell>
                     <TableCell>{formatarData(item.data_entregue)}</TableCell>
+                    <TableCell align="center" sx={{ px: 0.5 }}>
+                      <IconeMensagem
+                        enviada={item.msg_entregue_enviada}
+                        tooltip={item.msg_entregue_enviada ? "Mensagem de entrega enviada" : "Mensagem de entrega não enviada"}
+                      />
+                    </TableCell>
                     <TableCell align="center">{acaoDisponivel(item)}</TableCell>
                   </TableRow>
                 ))

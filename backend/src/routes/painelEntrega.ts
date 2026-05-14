@@ -32,7 +32,8 @@ router.get("/", async (_req, res) => {
     const result = await productPool.query(
       `SELECT
          id, chave, codloja, np, destinario, endereco, cidade_uf,
-         status, data_criacao, data_nf, data_saiu, data_entregue
+         status, data_criacao, data_nf, data_saiu, data_entregue,
+         msg_saiu_enviada, msg_entregue_enviada
        FROM wms_entregas
        WHERE status <> 'Entregue'
           OR data_entregue >= NOW() - INTERVAL '3 days'
