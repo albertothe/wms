@@ -3,8 +3,8 @@
 
 -- 1. Tabela de entregas
 CREATE TABLE IF NOT EXISTS wms_entregas (
-  id            serial PRIMARY KEY,
-  chave         varchar(10) NOT NULL UNIQUE,
+  id            serial,
+  chave         varchar(10) NOT NULL,
   codloja       integer NOT NULL,
   np            varchar(20) NOT NULL,
   destinario    varchar(100) NOT NULL,
@@ -14,18 +14,31 @@ CREATE TABLE IF NOT EXISTS wms_entregas (
   data_nf       timestamp,
   data_saiu     timestamp,
   data_entregue timestamp,
-  status        varchar(20) NOT NULL DEFAULT 'AguardandoNF'
+  status        varchar(20) NOT NULL DEFAULT 'AguardandoNF',
+  CONSTRAINT wms_entregas_pkey PRIMARY KEY (id),
+  CONSTRAINT wms_entregas_chave_unique UNIQUE (chave)
 );
 
--- 2. Registrar módulo (ajuste o campo "ordem" se necessário)
+-- 2. Registrar módulo logo após o Painel Separação
 INSERT INTO wms_modulos (nome, rota, icone, ordem, ativo)
-VALUES (
+SELECT
   'Painel Entrega',
   'painelentrega',
   'local_shipping',
-  (SELECT COALESCE(MAX(ordem), 0) + 1 FROM wms_modulos),
+  COALESCE((SELECT ordem FROM wms_modulos WHERE rota = 'painelseparacao'), 0) + 1,
   true
-);
+WHERE NOT EXISTS (SELECT 1 FROM wms_modulos WHERE rota = 'painelentrega');
+
+-- Abre espaço para o novo módulo ficar logo após o Painel Separação
+UPDATE wms_modulos
+SET ordem = ordem + 1
+WHERE ordem > COALESCE((SELECT ordem FROM wms_modulos WHERE rota = 'painelseparacao'), 0)
+  AND rota <> 'painelentrega';
+
+-- Garante que a ordem do Painel Entrega seja logo após Painel Separação
+UPDATE wms_modulos
+SET ordem = COALESCE((SELECT ordem FROM wms_modulos WHERE rota = 'painelseparacao'), 0) + 1
+WHERE rota = 'painelentrega';
 
 -- 3. Conceder permissões a todos os níveis de acesso ativos
 INSERT INTO wms_permissoes_nivel (codigo_nivel, id_modulo, visualizar, incluir, editar, excluir)
@@ -39,4 +52,8 @@ SELECT
 FROM wms_niveis_acesso na
 CROSS JOIN wms_modulos m
 WHERE m.rota = 'painelentrega'
-  AND na.ativo = true;
+  AND na.ativo = true
+  AND NOT EXISTS (
+    SELECT 1 FROM wms_permissoes_nivel p
+    WHERE p.codigo_nivel = na.codigo AND p.id_modulo = m.id
+  );
